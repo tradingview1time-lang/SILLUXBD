@@ -66,6 +66,11 @@ export const LuxuryVideoBanner: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  useEffect(() => {
+    setVideoFailed(false);
+  }, [customVideoSrc]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -296,7 +301,7 @@ export const LuxuryVideoBanner: React.FC = () => {
     <div className="relative w-full border-y border-[#C59B4A]/65 bg-[#15110C] shadow-[0_24px_60px_-24px_rgba(145,104,35,0.24)] select-none">
       {/* Full-Width Left-to-Right Edge-to-Edge Banner Stage */}
       <div className="relative w-full h-[46vh] sm:h-[58vh] lg:h-[68vh] min-h-[270px] max-h-[680px] overflow-hidden bg-[#15110C]">
-        {customVideoSrc ? (
+        {customVideoSrc && !videoFailed ? (
           <video
             key={customVideoSrc}
             src={customVideoSrc}
@@ -313,9 +318,20 @@ export const LuxuryVideoBanner: React.FC = () => {
                 void el.play().catch(() => {});
               }
             }}
-            onError={() =>
-              setVideoError('Could not play this video link. Try uploading an MP4 or WebM file.')
-            }
+            onLoadedData={(e) => {
+              const el = e.currentTarget;
+              el.muted = true;
+              void el.play().catch(() => {});
+            }}
+            onCanPlay={(e) => {
+              const el = e.currentTarget;
+              el.muted = true;
+              void el.play().catch(() => {});
+            }}
+            onError={() => {
+              setVideoFailed(true);
+              setVideoError('Could not play this video link. Try uploading an MP4 or WebM file.');
+            }}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         ) : (

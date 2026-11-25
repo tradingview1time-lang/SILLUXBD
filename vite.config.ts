@@ -45,6 +45,15 @@ export default defineConfig(({command}) => {
             fs.renameSync(builtAppHtml, distIndexHtml);
           }
 
+          if (fs.existsSync(distIndexHtml)) {
+            const buildStamp = Date.now().toString(36);
+            const html = fs
+              .readFileSync(distIndexHtml, 'utf8')
+              .replace('./assets/app.js', `./assets/app.js?v=${buildStamp}`)
+              .replace('./assets/app.css', `./assets/app.css?v=${buildStamp}`);
+            fs.writeFileSync(distIndexHtml, html, 'utf8');
+          }
+
           const srcAssets = path.resolve(__dirname, 'src/assets');
           const distAssets = path.resolve(distDir, 'src/assets');
           if (fs.existsSync(distDir) && fs.existsSync(srcAssets)) {
