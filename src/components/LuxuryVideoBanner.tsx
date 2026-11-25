@@ -300,10 +300,19 @@ export const LuxuryVideoBanner: React.FC = () => {
           <video
             key={customVideoSrc}
             src={customVideoSrc}
+            poster="./src/assets/images/sillux_cinema_banner_1795010746604.jpg"
             autoPlay
             loop
             muted
             playsInline
+            preload="auto"
+            ref={(el) => {
+              if (el) {
+                el.muted = true;
+                el.defaultMuted = true;
+                void el.play().catch(() => {});
+              }
+            }}
             onError={() =>
               setVideoError('Could not play this video link. Try uploading an MP4 or WebM file.')
             }
