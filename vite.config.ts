@@ -16,6 +16,16 @@ export default defineConfig(({command}) => {
       emptyOutDir: true,
       rollupOptions: {
         input: path.resolve(__dirname, 'app.src.html'),
+        output: {
+          entryFileNames: 'assets/app.js',
+          chunkFileNames: 'assets/[name].js',
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.names?.some((n) => n.endsWith('.css'))) {
+              return 'assets/app.css';
+            }
+            return 'assets/[name][extname]';
+          },
+        },
       },
     },
     plugins: [

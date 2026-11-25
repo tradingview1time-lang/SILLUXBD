@@ -49,7 +49,8 @@ const IS_OWNER_DEV_MODE =
   typeof __SILLUX_OWNER_DEV__ !== 'undefined' &&
   __SILLUX_OWNER_DEV__ &&
   typeof window !== 'undefined' &&
-  !window.location.hostname.endsWith('.github.io');
+  !window.location.hostname.endsWith('.github.io') &&
+  !window.location.hostname.startsWith('ais-pre-');
 
 /**
  * Full-bleed (left-to-right edge-to-edge) fixed luxury commercial banner.
