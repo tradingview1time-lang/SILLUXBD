@@ -392,6 +392,21 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                           <span>Send Order Email to {CONTACT_INFO.email}</span>
                         </button>
                       </div>
+                    ) : typeof window !== 'undefined' &&
+                      window.location.hostname.endsWith('.github.io') ? (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-[#5C5347] leading-relaxed">
+                          Open your email client with the full order details pre-filled for{' '}
+                          {CONTACT_INFO.email}:
+                        </p>
+                        <a
+                          href={buildMailtoOrderAlertUrl(confirmedState.order)}
+                          className="w-full min-h-[42px] px-3.5 py-2 bg-white border border-[#D8C59B] text-xs font-semibold text-[#1A1612] hover:border-[#B58938] flex items-center justify-center gap-2"
+                        >
+                          <Mail className="w-3.5 h-3.5 text-[#8C641E]" />
+                          <span>Send Order via Email App ({CONTACT_INFO.email})</span>
+                        </a>
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         <p className="text-[11px] text-[#5C5347] leading-relaxed">

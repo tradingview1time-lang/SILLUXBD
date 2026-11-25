@@ -1,60 +1,157 @@
-import type { User } from 'firebase/auth';
+export const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/userinfo.email',
+] as const;
 
-export const SCOPES = ['https://www.googleapis.com/auth/gmail.send'] as const;
+export interface GoogleAuthUser {
+  email: string | null;
+}
+
+interface GoogleTokenClient {
+  requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
+}
+
+interface GoogleAccountsApi {
+  oauth2: {
+    initTokenClient: (config: {
+      client_id: string;
+      scope: string;
+      callback: (response: {
+        access_token?: string;
+        error?: string;
+        error_description?: string;
+      }) => void;
+    }) => GoogleTokenClient;
+    revoke: (token: string, done?: () => void) => void;
+  };
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts?: GoogleAccountsApi;
+    };
+  }
+}
 
 // Keep OAuth access token strictly in memory (never in localStorage or sessionStorage)
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
-let cachedAuthInstance: import('firebase/auth').Auth | null = null;
+let gsiLoadPromise: Promise<void> | null = null;
 
-async function getFirebaseAuth(): Promise<import('firebase/auth').Auth | null> {
-  if (cachedAuthInstance) return cachedAuthInstance;
+function isStaticGitHubPagesHost(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.location.hostname.endsWith('.github.io')
+  );
+}
+
+async function fetchOAuthClientId(): Promise<string | null> {
+  if (isStaticGitHubPagesHost()) return null;
   try {
-    const [{ getApp, getApps, initializeApp }, { getAuth }, configMod] = await Promise.all([
-      import('firebase/app'),
-      import('firebase/auth'),
-      import('../../firebase-applet-config.json'),
-    ]);
-    const firebaseConfig = configMod.default;
-    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    cachedAuthInstance = getAuth(app);
-    return cachedAuthInstance;
+    const res = await fetch('/api/auth-config');
+    if (!res.ok) return null;
+    const data = (await res.json()) as { googleOAuthClientId?: string | null };
+    return typeof data.googleOAuthClientId === 'string' &&
+      data.googleOAuthClientId.trim().length > 0
+      ? data.googleOAuthClientId.trim()
+      : null;
   } catch {
     return null;
   }
 }
 
+function loadGoogleIdentityScript(): Promise<void> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('Google Sign-In requires a browser environment.'));
+  }
+  if (window.google?.accounts?.oauth2) {
+    return Promise.resolve();
+  }
+  if (gsiLoadPromise) return gsiLoadPromise;
+
+  gsiLoadPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://accounts.google.com/gsi/client"]'
+    );
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener(
+        'error',
+        () => reject(new Error('Could not load Google Sign-In script.')),
+        { once: true }
+      );
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Could not load Google Sign-In script.'));
+    document.head.appendChild(script);
+  });
+
+  return gsiLoadPromise;
+}
+
 export const initAuth = (
-  _onAuthSuccess?: (user: User, token: string) => void,
-  onAuthFailure?: (user: User | null) => void
+  _onAuthSuccess?: (user: GoogleAuthUser, token: string) => void,
+  onAuthFailure?: (user: GoogleAuthUser | null) => void
 ) => {
-  // Avoid eager Firebase initialization on static page loads (e.g. GitHub Pages)
   onAuthFailure?.(null);
   return () => {};
 };
 
 export const googleSignIn = async (): Promise<{
-  user: User;
+  user: GoogleAuthUser;
   accessToken: string;
 } | null> => {
-  const auth = await getFirebaseAuth();
-  if (!auth) {
+  const clientId = await fetchOAuthClientId();
+  if (!clientId) {
     throw new Error('Google Sign-In is unavailable in this hosting environment.');
   }
-  const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-  const provider = new GoogleAuthProvider();
-  for (const scope of SCOPES) {
-    provider.addScope(scope);
+
+  await loadGoogleIdentityScript();
+  const oauth2 = window.google?.accounts?.oauth2;
+  if (!oauth2) {
+    throw new Error('Google Sign-In failed to initialize.');
   }
+
+  isSigningIn = true;
   try {
-    isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to retrieve Gmail access token from Google Sign-In.');
+    const token = await new Promise<string>((resolve, reject) => {
+      const client = oauth2.initTokenClient({
+        client_id: clientId,
+        scope: SCOPES.join(' '),
+        callback: (resp) => {
+          if (resp.error || !resp.access_token) {
+            reject(new Error(resp.error_description || resp.error || 'Google Sign-In cancelled.'));
+            return;
+          }
+          resolve(resp.access_token);
+        },
+      });
+      client.requestAccessToken({ prompt: 'consent' });
+    });
+
+    cachedAccessToken = token;
+
+    let email: string | null = null;
+    try {
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (userRes.ok) {
+        const profile = (await userRes.json()) as { email?: string };
+        email = typeof profile.email === 'string' ? profile.email : null;
+      }
+    } catch {
+      // Proceed even if email profile lookup is unavailable
     }
-    cachedAccessToken = credential.accessToken;
-    return { user: result.user, accessToken: cachedAccessToken };
+
+    return { user: { email }, accessToken: token };
   } finally {
     isSigningIn = false;
   }
@@ -63,11 +160,12 @@ export const googleSignIn = async (): Promise<{
 export const getAccessToken = (): string | null => (isSigningIn ? null : cachedAccessToken);
 
 export const logout = async (): Promise<void> => {
+  const token = cachedAccessToken;
   cachedAccessToken = null;
-  if (!cachedAuthInstance) return;
+  if (!token) return;
   try {
-    await cachedAuthInstance.signOut();
+    window.google?.accounts?.oauth2.revoke(token);
   } catch {
-    // Ignore sign-out errors
+    // Ignore revoke errors
   }
 };

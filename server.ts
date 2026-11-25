@@ -330,6 +330,14 @@ async function startServer() {
     }
   });
 
+  app.get('/api/auth-config', (_req, res) => {
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() || null;
+    res.json({
+      configured: Boolean(clientId),
+      googleOAuthClientId: clientId,
+    });
+  });
+
   app.post('/api/orders/notify-gmail', async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
