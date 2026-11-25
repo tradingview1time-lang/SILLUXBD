@@ -1,0 +1,6 @@
+{
+  "name": "Sillux — Niche Perfume & Decant Atelier",
+  "description": "Sillux luxury niche perfumery and precision decant house. Smelling good never goes out of style. Explore 3D flacons from 3ML decants to full presentation bottles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

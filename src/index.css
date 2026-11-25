@@ -1,0 +1,572 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Tahoma", "Geneva", "PT Sans", "Segoe UI", sans-serif;
+  --font-sans: "Tahoma", "Geneva", "PT Sans", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: 0.005em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #FCFBF8;
+    color: #1A1612;
+    overflow-x: clip;
+    -webkit-tap-highlight-color: rgba(197, 155, 74, 0.18);
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom thin alabaster & champagne scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F7F2E8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8C7A4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B58938;
+}
+
+.sillux-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sillux-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes sillux-ken-burns-a {
+  0% {
+    transform: scale(1.0) translate3d(0%, 0%, 0);
+  }
+  50% {
+    transform: scale(1.08) translate3d(-1.4%, -0.8%, 0);
+  }
+  100% {
+    transform: scale(1.0) translate3d(0%, 0%, 0);
+  }
+}
+
+@keyframes sillux-ken-burns-b {
+  0% {
+    transform: scale(1.07) translate3d(1.2%, -0.6%, 0);
+  }
+  50% {
+    transform: scale(1.01) translate3d(-1%, 0.6%, 0);
+  }
+  100% {
+    transform: scale(1.07) translate3d(1.2%, -0.6%, 0);
+  }
+}
+
+@keyframes sillux-light-sweep {
+  0% {
+    transform: translateX(-45%) skewX(-18deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.22;
+  }
+  65% {
+    opacity: 0.14;
+  }
+  100% {
+    transform: translateX(145%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes sillux-title-glint {
+  0%, 100% {
+    opacity: 0.94;
+    transform: translateY(0px) scale(1);
+    text-shadow: 0 2px 24px rgba(18, 14, 9, 0.72), 0 0 18px rgba(218, 182, 108, 0.18);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.015);
+    text-shadow: 0 4px 32px rgba(18, 14, 9, 0.85), 0 0 34px rgba(232, 198, 130, 0.34);
+  }
+}
+
+.animate-sillux-cinema-a {
+  animation: sillux-ken-burns-a 22s ease-in-out infinite;
+}
+
+.animate-sillux-cinema-b {
+  animation: sillux-ken-burns-b 26s ease-in-out infinite;
+}
+
+.animate-sillux-sweep {
+  animation: sillux-light-sweep 11s ease-in-out infinite;
+}
+
+.animate-sillux-title {
+  animation: sillux-title-glint 7.5s ease-in-out infinite;
+}
+
+.sillux-tilt-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --px: 0px;
+  --py: 0px;
+  --gx: 50%;
+  --gy: 50%;
+  --glint: 0;
+  --img-scale: 1;
+  transform: perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry)) translateZ(0);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms ease, box-shadow 260ms ease;
+  will-change: transform;
+}
+
+.sillux-tilt-card:hover {
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.sillux-tilt-image {
+  transform: translate3d(var(--px), var(--py), 0) scale(var(--img-scale));
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.sillux-tilt-card:hover .sillux-tilt-image {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sillux-tilt-glint {
+  opacity: var(--glint);
+  background: radial-gradient(
+    320px circle at var(--gx) var(--gy),
+    rgba(212, 174, 96, 0.16),
+    rgba(197, 155, 74, 0.05) 45%,
+    transparent 75%
+  );
+  transition: opacity 280ms ease;
+}
+
+@keyframes sillux-btn-gold-ring {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.36);
+    opacity: 0;
+  }
+}
+
+@keyframes sillux-photo-enter-next {
+  0% {
+    opacity: 0.28;
+    transform: translate3d(18px, 0, 0) scale(1.018);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sillux-photo-enter-prev {
+  0% {
+    opacity: 0.28;
+    transform: translate3d(-18px, 0, 0) scale(1.018);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sillux-counter-settle {
+  0% {
+    opacity: 0.45;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sillux-gallery-btn {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.sillux-gallery-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 10px 24px -8px rgba(154, 114, 40, 0.42);
+}
+
+.sillux-gallery-btn:active {
+  transform: translateY(0) scale(0.93);
+  transition-duration: 90ms;
+}
+
+.sillux-gallery-btn-sheen {
+  transform: translateX(-135%) skewX(-22deg);
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+  opacity: 0;
+}
+
+.sillux-gallery-btn:hover .sillux-gallery-btn-sheen {
+  transform: translateX(155%) skewX(-22deg);
+  opacity: 1;
+}
+
+.animate-sillux-btn-ring {
+  animation: sillux-btn-gold-ring 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-sillux-photo-next {
+  animation: sillux-photo-enter-next 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-sillux-photo-prev {
+  animation: sillux-photo-enter-prev 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-sillux-counter {
+  animation: sillux-counter-settle 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sillux-cta-sheen {
+  0%, 35% {
+    transform: translateX(-140%) skewX(-20deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.75;
+  }
+  72%, 100% {
+    transform: translateX(220%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+@keyframes sillux-cta-halo {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.03, 1.1);
+    opacity: 0.75;
+  }
+}
+
+@keyframes sillux-arrow-forward {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+.sillux-bestseller-cta {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.sillux-bestseller-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px -12px rgba(154, 114, 40, 0.45);
+}
+
+.sillux-bestseller-cta:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 90ms;
+}
+
+.animate-sillux-cta-sheen {
+  animation: sillux-cta-sheen 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.animate-sillux-cta-halo {
+  animation: sillux-cta-halo 2.8s ease-in-out infinite;
+}
+
+.animate-sillux-arrow-forward {
+  animation: sillux-arrow-forward 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.sillux-bestseller-cta:hover .animate-sillux-arrow-forward {
+  animation: none;
+  transform: translate3d(6px, 0, 0);
+}
+
+@keyframes sillux-chat-popup {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.65);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, -3px, 0) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sillux-chat-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes sillux-chat-orbit {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.26);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.26);
+    opacity: 0;
+  }
+}
+
+@keyframes sillux-chat-dot {
+  0%, 80%, 100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translateY(-2px) scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes sillux-chat-panel-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.sillux-chat-launcher-wrap {
+  --chat-x: 0px;
+  --chat-y: 0px;
+  transform: translate3d(var(--chat-x), var(--chat-y), 0);
+  will-change: transform;
+}
+
+.animate-sillux-chat-popup {
+  animation: sillux-chat-popup 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-sillux-chat-float {
+  animation: sillux-chat-float 3.4s ease-in-out infinite;
+}
+
+.animate-sillux-chat-orbit {
+  animation: sillux-chat-orbit 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-sillux-chat-dot-1 {
+  animation: sillux-chat-dot 1.4s ease-in-out infinite 0ms;
+}
+
+.animate-sillux-chat-dot-2 {
+  animation: sillux-chat-dot 1.4s ease-in-out infinite 180ms;
+}
+
+.animate-sillux-chat-dot-3 {
+  animation: sillux-chat-dot 1.4s ease-in-out infinite 360ms;
+}
+
+.animate-sillux-chat-panel {
+  animation: sillux-chat-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sillux-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-sillux-marquee {
+  animation: sillux-marquee 56s linear infinite;
+  will-change: transform;
+}
+
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .sillux-tilt-card,
+  .sillux-tilt-image {
+    transform: none !important;
+  }
+  .sillux-tilt-glint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-sillux-cinema-a,
+  .animate-sillux-cinema-b,
+  .animate-sillux-sweep,
+  .animate-sillux-title,
+  .animate-sillux-btn-ring,
+  .animate-sillux-photo-next,
+  .animate-sillux-photo-prev,
+  .animate-sillux-counter,
+  .animate-sillux-cta-sheen,
+  .animate-sillux-cta-halo,
+  .animate-sillux-arrow-forward,
+  .animate-sillux-chat-popup,
+  .animate-sillux-chat-float,
+  .animate-sillux-chat-orbit,
+  .animate-sillux-chat-dot-1,
+  .animate-sillux-chat-dot-2,
+  .animate-sillux-chat-dot-3,
+  .animate-sillux-chat-panel,
+  .animate-sillux-marquee {
+    animation: none;
+  }
+
+  .sillux-gallery-btn,
+  .sillux-gallery-btn-sheen,
+  .sillux-bestseller-cta {
+    transition: none;
+  }
+}
+
+/* Official Google Sign-In Button Styling */
+.gsi-material-button {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-appearance: none;
+  background-color: #ffffff;
+  background-image: none;
+  border: 1px solid #d8c59b;
+  border-radius: 2px;
+  box-sizing: border-box;
+  color: #1f1f1f;
+  cursor: pointer;
+  font-family: "Tahoma", "Geneva", "PT Sans", Arial, sans-serif;
+  font-size: 13px;
+  height: 40px;
+  letter-spacing: 0.25px;
+  outline: none;
+  overflow: hidden;
+  padding: 0 14px;
+  position: relative;
+  text-align: center;
+  transition: background-color 0.218s, border-color 0.218s, box-shadow 0.218s;
+  vertical-align: middle;
+  white-space: nowrap;
+  width: auto;
+  max-width: 100%;
+  min-width: min-content;
+}
+
+.gsi-material-button .gsi-material-button-icon {
+  height: 18px;
+  margin-right: 10px;
+  min-width: 18px;
+  width: 18px;
+}
+
+.gsi-material-button .gsi-material-button-content-wrapper {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: 100%;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.gsi-material-button .gsi-material-button-contents {
+  flex-grow: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.gsi-material-button .gsi-material-button-state {
+  transition: opacity 0.218s;
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.gsi-material-button:disabled {
+  cursor: default;
+  background-color: #ffffff61;
+  border-color: #1f1f1f1f;
+}
+
+.gsi-material-button:not(:disabled):hover {
+  border-color: #b58938;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.25), 0 1px 3px 1px rgba(60, 64, 67, 0.12);
+}
+
+.gsi-material-button:not(:disabled):hover .gsi-material-button-state {
+  background-color: #303030;
+  opacity: 0.06;
+}
+
