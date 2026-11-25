@@ -140,11 +140,13 @@ const SHIPMENT_STEPS = [
 
 interface OrderStatusModalProps {
   open: boolean;
+  initialOrderId?: string | null;
   onClose: () => void;
 }
 
 export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
   open,
+  initialOrderId = null,
   onClose,
 }) => {
   const [inputCode, setInputCode] = useState('');
@@ -152,28 +154,7 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
   const [result, setResult] = useState<ShipmentLookupResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      const stored = loadOrdersFromStorage();
-      setRecentOrders(stored);
-      if (stored.length > 0 && !inputCode) {
-        setInputCode(stored[0].orderId);
-      }
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const lookupOrder = (rawCode: string) => {
+  const lookupOrder = (rawCode: string, explicitStored?: StoredOrderRecord[]) => {
     const normalized = rawCode.trim().toUpperCase().replace(/^#/, '');
     if (!normalized) {
       setResult(null);
@@ -181,8 +162,10 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
       return;
     }
 
+    const ordersPool = explicitStored ?? loadOrdersFromStorage();
+
     // 1. Check orders placed during current/past browser sessions
-    const storedMatch = recentOrders.find(
+    const storedMatch = ordersPool.find(
       (o) => o.orderId.toUpperCase() === normalized
     );
     if (storedMatch) {
@@ -233,6 +216,29 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
       `No shipment record found for "${normalized}". Check your order code (e.g. SLX-1042) or contact us on WhatsApp at ${CONTACT_INFO.whatsappDisplay}.`
     );
   };
+
+  useEffect(() => {
+    if (open) {
+      const stored = loadOrdersFromStorage();
+      setRecentOrders(stored);
+      const targetOrderId = initialOrderId?.trim() || (stored.length > 0 ? stored[0].orderId : '');
+      if (targetOrderId) {
+        setInputCode(targetOrderId);
+        lookupOrder(targetOrderId, stored);
+      }
+    }
+  }, [open, initialOrderId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -454,9 +460,16 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
 
               {/* Items + Concierge Action */}
               <div className="p-4 bg-white border border-[#E5D8BC] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1 text-xs">
-                  <div className="text-[#7C7162]">Parcel Contents</div>
-                  <div className="text-[#1A1612] font-medium">{result.itemsSummary.join(' · ')}</div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="text-[11px] uppercase tracking-[0.12em] font-semibold text-[#8C641E]">
+                    Product Details ({result.itemsSummary.length}{' '}
+                    {result.itemsSummary.length === 1 ? 'item' : 'items'})
+                  </div>
+                  <ul className="space-y-1 text-[#1A1612] font-medium">
+                    {result.itemsSummary.map((line, i) => (
+                      <li key={i}>• {line}</li>
+                    ))}
+                  </ul>
                 </div>
 
                 <a

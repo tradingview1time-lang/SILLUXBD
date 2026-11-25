@@ -105,6 +105,7 @@ export default function App() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
   const [orderStatusOpen, setOrderStatusOpen] = useState(false);
+  const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
 
   // New-visitor Cookie Consent state
   const [cookiePrefs, setCookiePrefs] = useState<CookiePreferences | null>(() =>
@@ -346,6 +347,11 @@ export default function App() {
   const openExploreWithTab = (tab: ExploreTab) => {
     setExploreTab(tab);
     setExploreOpen(true);
+  };
+
+  const openOrderTracking = (orderId?: string) => {
+    setTrackingOrderId(orderId ?? null);
+    setOrderStatusOpen(true);
   };
 
   const handleToggleWishlist = (perfume: Perfume, preferredSize: PerfumeSizeId) => {
@@ -1141,12 +1147,16 @@ export default function App() {
         onClose={() => setExploreOpen(false)}
         onNavigateSection={handleNavigateSection}
         onOpenPolicyPage={openPolicyPage}
-        onOpenOrderStatus={() => setOrderStatusOpen(true)}
+        onOpenOrderStatus={(orderId) => openOrderTracking(orderId)}
       />
 
       <OrderStatusModal
         open={orderStatusOpen}
-        onClose={() => setOrderStatusOpen(false)}
+        initialOrderId={trackingOrderId}
+        onClose={() => {
+          setOrderStatusOpen(false);
+          setTrackingOrderId(null);
+        }}
       />
 
       <SearchOverlay
@@ -1182,6 +1192,10 @@ export default function App() {
         onUpdateQty={handleUpdateQty}
         onRemoveItem={handleRemoveItem}
         onClearBag={() => setCart([])}
+        onTrackOrder={(orderId) => {
+          setBagOpen(false);
+          openOrderTracking(orderId);
+        }}
       />
 
       <SilluxChatbox

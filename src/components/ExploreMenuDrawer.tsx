@@ -12,10 +12,11 @@ import {
   PackageSearch,
   Mail,
 } from 'lucide-react';
-import { CONTACT_INFO, DECANTING_STEPS, FAQ_ITEMS } from '../data/perfumes';
+import { CONTACT_INFO, DECANTING_STEPS, FAQ_ITEMS, formatBdt } from '../data/perfumes';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { StoredOrderRecord, loadOrdersFromStorage } from './OrderStatusModal';
 
-export type ExploreTab = 'contact' | 'decant' | 'faq';
+export type ExploreTab = 'contact' | 'decant' | 'faq' | 'track';
 
 interface ExploreMenuDrawerProps {
   open: boolean;
@@ -28,7 +29,7 @@ interface ExploreMenuDrawerProps {
   onClose: () => void;
   onNavigateSection: (sectionId: string) => void;
   onOpenPolicyPage: (tab: 'authenticity' | 'refund') => void;
-  onOpenOrderStatus: () => void;
+  onOpenOrderStatus: (orderId?: string) => void;
 }
 
 export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
@@ -50,10 +51,14 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
   const [inquiryName, setInquiryName] = useState('');
   const [inquiryNote, setInquiryNote] = useState('');
   const [inquirySent, setInquirySent] = useState(false);
+  const [savedOrders, setSavedOrders] = useState<StoredOrderRecord[]>([]);
 
   React.useEffect(() => {
-    if (open && initialTab) {
-      setActiveTab(initialTab);
+    if (open) {
+      setSavedOrders(loadOrdersFromStorage());
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
     }
   }, [open, initialTab]);
 
@@ -106,25 +111,25 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
           </button>
         </div>
 
-        {/* 3 Primary Menu Options */}
-        <div className="grid grid-cols-3 border-b border-[#E7DCC4] bg-[#F7F2E8] shrink-0">
+        {/* 4 Primary Menu Options */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 border-b border-[#E7DCC4] bg-[#F7F2E8] shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('contact')}
-            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-3 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
+            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
               activeTab === 'contact'
                 ? 'border-[#B58938] text-[#1A1612] bg-white font-semibold'
                 : 'border-transparent text-[#5C5347] hover:text-[#1A1612]'
             }`}
           >
             <Phone className="w-3.5 h-3.5 text-[#9A7228] shrink-0" />
-            <span>Contact With Us</span>
+            <span>Contact Us</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('decant')}
-            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-3 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
+            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
               activeTab === 'decant'
                 ? 'border-[#B58938] text-[#1A1612] bg-white font-semibold'
                 : 'border-transparent text-[#5C5347] hover:text-[#1A1612]'
@@ -137,7 +142,7 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('faq')}
-            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-3 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
+            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
               activeTab === 'faq'
                 ? 'border-[#B58938] text-[#1A1612] bg-white font-semibold'
                 : 'border-transparent text-[#5C5347] hover:text-[#1A1612]'
@@ -145,6 +150,21 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
           >
             <HelpCircle className="w-3.5 h-3.5 text-[#9A7228] shrink-0" />
             <span>FAQ</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('track')}
+            className={`min-h-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-3 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
+              activeTab === 'track'
+                ? 'border-[#B58938] text-[#1A1612] bg-white font-semibold'
+                : 'border-transparent text-[#5C5347] hover:text-[#1A1612]'
+            }`}
+          >
+            <PackageSearch className="w-3.5 h-3.5 text-[#9A7228] shrink-0" />
+            <span>
+              Track Orders{savedOrders.length > 0 ? ` (${savedOrders.length})` : ''}
+            </span>
           </button>
         </div>
 
@@ -406,6 +426,103 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
               </button>
             </div>
           )}
+
+          {activeTab === 'track' && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="font-display text-2xl text-[#1A1612]">
+                  Track Orders
+                </h3>
+                <p className="text-sm text-[#5C5347] mt-1.5 leading-relaxed">
+                  Review your placed orders, order ID numbers, and ordered fragrance details, or
+                  inspect live atelier preparation and courier progress.
+                </p>
+              </div>
+
+              {savedOrders.length > 0 ? (
+                <div className="space-y-3">
+                  {savedOrders.map((order) => {
+                    const orderTotal =
+                      order.totalBdt ?? Math.round((order.totalUsd ?? 0) * 120);
+                    return (
+                      <div
+                        key={order.orderId}
+                        className="p-4 bg-white border border-[#DFD1B4] space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-mono tabular-nums text-xs font-semibold text-[#8C641E]">
+                              Order ID: #{order.orderId}
+                            </div>
+                            <div className="text-[11px] text-[#6D6254] mt-0.5">
+                              {new Date(order.createdAt).toLocaleString()}
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 bg-[#FAF6ED] border border-[#E5D8BC] text-[10px] font-semibold uppercase tracking-wider text-[#1A1612] shrink-0">
+                            {order.paymentMethod === 'bKash' || order.paymentMethod === 'Nagad'
+                              ? order.paymentMethod
+                              : 'COD'}
+                          </span>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#ECE2CE] space-y-1 text-xs">
+                          <div className="text-[#6D6254]">Product Details</div>
+                          <ul className="space-y-1 text-[#1A1612] font-medium">
+                            {order.itemsSummary.map((line, i) => (
+                              <li key={i}>• {line}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#ECE2CE] flex items-center justify-between gap-3 text-xs">
+                          <div className="min-w-0 text-[#5C5347] truncate">
+                            {order.customerName} · {order.customerAddress}
+                          </div>
+                          <div className="font-mono tabular-nums font-semibold text-[#8C641E] shrink-0">
+                            {formatBdt(orderTotal)}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenOrderStatus(order.orderId);
+                          }}
+                          className="w-full min-h-[42px] px-4 py-2 bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <PackageSearch className="w-3.5 h-3.5" />
+                          <span>Track Order #{order.orderId}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-5 bg-white border border-[#E5D8BC] text-center space-y-2">
+                  <p className="font-display text-xl text-[#1A1612]">
+                    No recent orders saved yet
+                  </p>
+                  <p className="text-xs text-[#5C5347] leading-relaxed">
+                    Once you place an order, your Order ID and product details will appear right
+                    here for instant tracking.
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenOrderStatus(savedOrders[0]?.orderId);
+                }}
+                className="w-full min-h-[44px] py-2.5 bg-[#D6B265] border border-[#B58938] text-[#1A1612] hover:bg-[#C59B4A] transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <PackageSearch className="w-3.5 h-3.5" />
+                <span>Look Up Any Order ID</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Quick Catalog Navigation Buttons */}
@@ -453,12 +570,12 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
               type="button"
               onClick={() => {
                 onClose();
-                onOpenOrderStatus();
+                onOpenOrderStatus(savedOrders[0]?.orderId);
               }}
               className="group min-h-[42px] inline-flex items-center justify-center gap-1 px-2 py-2 bg-[#D6B265] border border-[#B58938] text-[11px] sm:text-xs font-semibold text-[#1A1612] hover:bg-[#1A1612] hover:text-[#FCFBF8] hover:border-[#1A1612] transition-all cursor-pointer whitespace-nowrap"
             >
               <PackageSearch className="w-3.5 h-3.5 shrink-0" />
-              <span>Order Status</span>
+              <span>Track Orders</span>
             </button>
 
             <button

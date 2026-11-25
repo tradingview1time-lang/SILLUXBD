@@ -13,6 +13,7 @@ import {
   Mail,
   Send,
   AlertCircle,
+  PackageSearch,
 } from 'lucide-react';
 import {
   CONTACT_INFO,
@@ -51,6 +52,7 @@ interface ShoppingBagDrawerProps {
   onUpdateQty: (perfumeId: string, sizeId: PerfumeSizeId, delta: number) => void;
   onRemoveItem: (perfumeId: string, sizeId: PerfumeSizeId) => void;
   onClearBag: () => void;
+  onTrackOrder: (orderId: string) => void;
 }
 
 interface ConfirmedOrderState {
@@ -78,6 +80,7 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
   onUpdateQty,
   onRemoveItem,
   onClearBag,
+  onTrackOrder,
 }) => {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -546,6 +549,37 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                       {formatBdt(confirmedState.order.totalBdt)}
                     </span>
                   </div>
+                </div>
+
+                {/* Track Your Order CTA on Thank You Screen */}
+                <div className="p-3.5 bg-[#FAF6ED] border border-[#C59B4A] space-y-2">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold text-[#1A1612]">
+                      Track Your Order
+                    </span>
+                    <span className="font-mono tabular-nums text-[11px] font-semibold text-[#8C641E]">
+                      #{confirmedState.order.orderId}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#5C5347] leading-relaxed">
+                    Follow live preparation and delivery updates for{' '}
+                    <span className="font-medium text-[#1A1612]">
+                      {confirmedState.order.itemsSummary.join(', ')}
+                    </span>
+                    .
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const orderId = confirmedState.order.orderId;
+                      setConfirmedState(null);
+                      onTrackOrder(orderId);
+                    }}
+                    className="w-full min-h-[44px] px-4 py-2.5 bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <PackageSearch className="w-4 h-4" />
+                    <span>Track Your Order (#{confirmedState.order.orderId})</span>
+                  </button>
                 </div>
 
                 {/* Bound WhatsApp + Gmail Notification Controls */}
