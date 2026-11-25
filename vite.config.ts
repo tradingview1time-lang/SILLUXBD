@@ -4,9 +4,12 @@ import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({command}) => {
   return {
     base: './',
+    define: {
+      __SILLUX_OWNER_DEV__: JSON.stringify(command === 'serve'),
+    },
     build: {
       target: 'es2020',
       outDir: 'dist',

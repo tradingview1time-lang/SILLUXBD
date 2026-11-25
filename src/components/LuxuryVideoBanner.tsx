@@ -1,99 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Film, Upload, Link2, RotateCcw, X, Check } from 'lucide-react';
+import { Film, Upload, Link2, RotateCcw, X, Check, Lock } from 'lucide-react';
+import { HERO_CUSTOM_VIDEO_SRC, HERO_SHOW_TITLE_OVERLAY } from '../config/heroMedia';
 
 interface CommercialScene {
   src: string;
   actLabel: string;
   caption: string;
   motionClass: string;
-}
-
-/**
- * Optional static video path or URL if you host a file in /public (e.g. "/hero-video.mp4").
- * Leave empty ("") to use the built-in Sillux reel or a video uploaded via the "Add Video" button.
- */
-const DEFAULT_CUSTOM_VIDEO_URL = '';
-
-const DB_NAME = 'sillux_media_db';
-const STORE_NAME = 'banner_media';
-const VIDEO_KEY = 'hero_banner_video';
-const OVERLAY_PREF_KEY = 'sillux_banner_show_overlay_v1';
-
-interface StoredBannerMedia {
-  kind: 'blob' | 'url';
-  blob?: Blob;
-  url?: string;
-  fileName?: string;
-}
-
-function openMediaDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = window.indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function saveStoredBannerMedia(media: StoredBannerMedia): Promise<void> {
-  const db = await openMediaDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(media, VIDEO_KEY);
-    tx.oncomplete = () => {
-      db.close();
-      resolve();
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-  });
-}
-
-async function loadStoredBannerMedia(): Promise<StoredBannerMedia | null> {
-  try {
-    const db = await openMediaDb();
-    return await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(VIDEO_KEY);
-      req.onsuccess = () => {
-        db.close();
-        resolve((req.result as StoredBannerMedia | undefined) ?? null);
-      };
-      req.onerror = () => {
-        db.close();
-        reject(req.error);
-      };
-    });
-  } catch {
-    return null;
-  }
-}
-
-async function clearStoredBannerMedia(): Promise<void> {
-  try {
-    const db = await openMediaDb();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).delete(VIDEO_KEY);
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    });
-  } catch {
-    // Ignore storage cleanup errors
-  }
 }
 
 const COMMERCIAL_SCENES: CommercialScene[] = [
@@ -129,57 +42,34 @@ interface MistMote {
   maxLife: number;
 }
 
+declare const __SILLUX_OWNER_DEV__: boolean;
+
+// Compiled to literal false in production builds so live website visitors never see or access upload controls.
+const IS_OWNER_DEV_MODE =
+  typeof __SILLUX_OWNER_DEV__ !== 'undefined' &&
+  __SILLUX_OWNER_DEV__ &&
+  typeof window !== 'undefined' &&
+  !window.location.hostname.endsWith('.github.io');
+
 /**
- * Full-bleed (left-to-right edge-to-edge) fixed luxury video banner with support
- * for uploading a custom video file or pasting a video URL, saved in browser storage.
+ * Full-bleed (left-to-right edge-to-edge) fixed luxury commercial banner.
+ * Only editable by the owner inside local/AI Studio preview; production/live builds
+ * ship strictly the finalized video or reel with zero visible or adjustable controls.
  */
 export const LuxuryVideoBanner: React.FC = () => {
   const [sceneIndex, setSceneIndex] = useState(0);
-  const [customVideoSrc, setCustomVideoSrc] = useState<string>(DEFAULT_CUSTOM_VIDEO_URL);
-  const [customVideoName, setCustomVideoName] = useState<string>('');
-  const [showTitleOverlay, setShowTitleOverlay] = useState<boolean>(() => {
-    try {
-      const saved = window.localStorage.getItem(OVERLAY_PREF_KEY);
-      return saved === null ? true : saved === 'true';
-    } catch {
-      return true;
-    }
-  });
+  const [customVideoSrc, setCustomVideoSrc] = useState<string>(HERO_CUSTOM_VIDEO_SRC);
+  const [showTitleOverlay, setShowTitleOverlay] = useState<boolean>(HERO_SHOW_TITLE_OVERLAY);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
+  const [urlInput, setUrlInput] = useState(HERO_CUSTOM_VIDEO_SRC);
+  const [isSaving, setIsSaving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
 
-  // Load any previously uploaded/saved custom banner video from IndexedDB
-  useEffect(() => {
-    let cancelled = false;
-    void loadStoredBannerMedia().then((stored) => {
-      if (cancelled || !stored) return;
-      if (stored.kind === 'blob' && stored.blob) {
-        const objUrl = URL.createObjectURL(stored.blob);
-        objectUrlRef.current = objUrl;
-        setCustomVideoSrc(objUrl);
-        setCustomVideoName(stored.fileName || 'Custom Uploaded Video');
-      } else if (stored.kind === 'url' && stored.url) {
-        setCustomVideoSrc(stored.url);
-        setCustomVideoName(stored.fileName || 'Custom Video Link');
-        setUrlInput(stored.url);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-  }, []);
-
-  // Commercial reel scene cross-dissolve loop (used when default reel is active)
+  // Commercial reel scene cross-dissolve loop (active when no custom video is set)
   useEffect(() => {
     if (customVideoSrc) return;
     const prefersReduced =
@@ -288,89 +178,115 @@ export const LuxuryVideoBanner: React.FC = () => {
     };
   }, [customVideoSrc]);
 
-  const handleToggleOverlay = (checked: boolean) => {
-    setShowTitleOverlay(checked);
-    try {
-      window.localStorage.setItem(OVERLAY_PREF_KEY, String(checked));
-    } catch {
-      // Ignore storage errors
-    }
-  };
-
   const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!IS_OWNER_DEV_MODE) return;
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('video/')) {
-      setVideoError('Please choose a valid video file (MP4, WebM, or MOV).');
+    if (!['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type)) {
+      setVideoError('Please upload an MP4, WebM, or MOV video file.');
+      return;
+    }
+    if (file.size > 45 * 1024 * 1024) {
+      setVideoError('Please choose a video file under 45 MB for fast web & GitHub loading.');
       return;
     }
 
     setVideoError(null);
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-    }
-    const objUrl = URL.createObjectURL(file);
-    objectUrlRef.current = objUrl;
-    setCustomVideoSrc(objUrl);
-    setCustomVideoName(file.name);
-    setEditorOpen(false);
+    setStatusMessage(null);
+    setIsSaving(true);
 
     try {
-      await saveStoredBannerMedia({
-        kind: 'blob',
-        blob: file,
-        fileName: file.name,
+      const res = await fetch('/api/dev/hero-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': file.type,
+          'X-Show-Overlay': String(showTitleOverlay),
+        },
+        body: file,
       });
-    } catch {
-      // Video still plays for this session even if IndexedDB storage fails
+      const data = (await res.json()) as { ok?: boolean; videoSrc?: string; error?: string };
+      if (!res.ok || !data.videoSrc) {
+        throw new Error(data.error || 'Could not save video.');
+      }
+      setCustomVideoSrc(`${data.videoSrc}?v=${Date.now()}`);
+      setStatusMessage('Video saved to project and live build updated.');
+      setEditorOpen(false);
+    } catch (err: unknown) {
+      setVideoError(err instanceof Error ? err.message : 'Failed to upload banner video.');
+    } finally {
+      setIsSaving(false);
+      e.target.value = '';
     }
-
-    e.target.value = '';
   };
 
   const handleApplyVideoUrl = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!IS_OWNER_DEV_MODE) return;
     const trimmed = urlInput.trim();
     if (!trimmed) {
       setVideoError('Please paste a direct video URL (.mp4 or .webm).');
       return;
     }
-    if (!/^https?:\/\/|^\//i.test(trimmed)) {
+    if (!/^https?:\/\/|^\.\.?\/|^\//i.test(trimmed)) {
       setVideoError('Video link must start with https://, http://, or /');
       return;
     }
 
     setVideoError(null);
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-    setCustomVideoSrc(trimmed);
-    setCustomVideoName('Custom Video URL');
-    setEditorOpen(false);
+    setStatusMessage(null);
+    setIsSaving(true);
 
     try {
-      await saveStoredBannerMedia({
-        kind: 'url',
-        url: trimmed,
-        fileName: 'Custom Video URL',
+      const res = await fetch('/api/dev/hero-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: trimmed, showOverlay: showTitleOverlay }),
+      });
+      const data = (await res.json()) as { ok?: boolean; videoSrc?: string; error?: string };
+      if (!res.ok || !data.videoSrc) {
+        throw new Error(data.error || 'Could not save video URL.');
+      }
+      setCustomVideoSrc(data.videoSrc);
+      setStatusMessage('Video link saved to live build.');
+      setEditorOpen(false);
+    } catch (err: unknown) {
+      setVideoError(err instanceof Error ? err.message : 'Failed to save video link.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleOverlay = async (checked: boolean) => {
+    setShowTitleOverlay(checked);
+    if (!IS_OWNER_DEV_MODE) return;
+    try {
+      await fetch('/api/dev/hero-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoUrl: customVideoSrc.split('?')[0],
+          showOverlay: checked,
+        }),
       });
     } catch {
-      // Ignore storage error
+      // Ignore overlay toggle sync errors in dev
     }
   };
 
   const handleResetToDefault = async () => {
+    if (!IS_OWNER_DEV_MODE) return;
     setVideoError(null);
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
+    setStatusMessage(null);
+    setIsSaving(true);
+    try {
+      await fetch('/api/dev/hero-video', { method: 'DELETE' });
+      setCustomVideoSrc('');
+      setUrlInput('');
+      setShowTitleOverlay(true);
+      setEditorOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-    setCustomVideoSrc(DEFAULT_CUSTOM_VIDEO_URL);
-    setCustomVideoName('');
-    setUrlInput('');
-    setEditorOpen(false);
-    await clearStoredBannerMedia();
   };
 
   const currentScene = COMMERCIAL_SCENES[sceneIndex];
@@ -463,51 +379,59 @@ export const LuxuryVideoBanner: React.FC = () => {
         {/* Bottom Anamorphic Champagne-Trimmed Matte Bar */}
         <div className="absolute bottom-0 inset-x-0 h-2 sm:h-3 bg-[#14100B] border-t border-[#C59B4A]/40 pointer-events-none" />
 
-        {/* Video Upload / Link Option Button (Bottom-Right Corner of Banner) */}
-        <div className="absolute bottom-4 right-3 sm:bottom-5 sm:right-6 z-20 flex items-center gap-2">
-          {customVideoSrc && (
+        {/* Owner-Only Banner Controls (ONLY mounted in local/AI Studio preview, stripped from live website builds) */}
+        {IS_OWNER_DEV_MODE && (
+          <div className="absolute bottom-4 right-3 sm:bottom-5 sm:right-6 z-20 flex items-center gap-2">
+            {customVideoSrc && (
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => void handleResetToDefault()}
+                title="Revert to default Sillux reel"
+                className="min-h-[38px] px-2.5 py-1.5 bg-[#14100B]/85 backdrop-blur-sm border border-[#DFBC76]/60 text-[#F5EDE0] hover:border-[#D6B265] hover:text-[#D6B265] transition-colors text-[11px] font-medium inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden sm:inline">Default Reel</span>
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={() => void handleResetToDefault()}
-              title="Revert to default Sillux reel"
-              className="min-h-[38px] px-2.5 py-1.5 bg-[#14100B]/85 backdrop-blur-sm border border-[#DFBC76]/60 text-[#F5EDE0] hover:border-[#D6B265] hover:text-[#D6B265] transition-colors text-[11px] font-medium inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              onClick={() => {
+                setVideoError(null);
+                setEditorOpen((prev) => !prev);
+              }}
+              aria-expanded={editorOpen}
+              aria-label={customVideoSrc ? 'Owner: Change banner video' : 'Owner: Add hero video'}
+              className="min-h-[38px] px-3 py-1.5 bg-white/95 backdrop-blur-sm border border-[#C59B4A] text-[#1A1612] hover:bg-[#1A1612] hover:text-[#D6B265] hover:border-[#D6B265] shadow-[0_8px_20px_-6px_rgba(20,16,11,0.5)] transition-colors text-[11px] font-semibold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
-              <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">Default Reel</span>
+              <Lock className="w-3 h-3 text-[#9A7228]" />
+              <Film className="w-3.5 h-3.5 text-[#9A7228]" />
+              <span>{customVideoSrc ? 'Owner: Change Video' : 'Owner: Add Video'}</span>
             </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              setVideoError(null);
-              setEditorOpen((prev) => !prev);
-            }}
-            aria-expanded={editorOpen}
-            aria-label={customVideoSrc ? 'Change banner video' : 'Add your video to banner'}
-            className="min-h-[38px] px-3 py-1.5 bg-white/95 backdrop-blur-sm border border-[#C59B4A] text-[#1A1612] hover:bg-[#1A1612] hover:text-[#D6B265] hover:border-[#D6B265] shadow-[0_8px_20px_-6px_rgba(20,16,11,0.5)] transition-colors text-[11px] font-semibold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-          >
-            <Film className="w-3.5 h-3.5 text-[#9A7228]" />
-            <span>{customVideoSrc ? 'Change Video' : 'Add Your Video'}</span>
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Inline Banner Video Upload & URL Panel (placed outside overflow-hidden so it never clips) */}
-      {editorOpen && (
+      {/* Owner-Only Upload Panel (completely stripped out in live production builds) */}
+      {IS_OWNER_DEV_MODE && editorOpen && (
         <div
           role="dialog"
-          aria-label="Set custom banner video"
-          className="fixed inset-x-3 bottom-4 sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-2 sm:right-6 sm:absolute z-50 sm:z-30 w-auto sm:w-[360px] bg-white border border-[#C59B4A] shadow-[0_24px_60px_-16px_rgba(20,16,11,0.55)] p-4 space-y-3.5 text-left"
+          aria-label="Owner hero banner video manager"
+          className="fixed inset-x-3 bottom-4 sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-2 sm:right-6 sm:absolute z-50 sm:z-30 w-auto sm:w-[370px] bg-white border border-[#C59B4A] shadow-[0_24px_60px_-16px_rgba(20,16,11,0.55)] p-4 space-y-3.5 text-left"
         >
           <div className="flex items-start justify-between gap-3 border-b border-[#ECE2CE] pb-2.5">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-[#9A7228] font-semibold">
-                Hero Banner Video
+              <div className="text-[10px] uppercase tracking-[0.16em] text-[#9A7228] font-semibold flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                <span>Owner Preview Only</span>
               </div>
               <h3 className="font-display text-base font-bold text-[#1A1612] leading-snug">
-                Add Your Brand Video
+                Set Live Hero Banner Video
               </h3>
+              <p className="text-[11px] text-[#6D6254] mt-0.5">
+                Hidden &amp; locked on the live public website.
+              </p>
             </div>
             <button
               type="button"
@@ -519,33 +443,32 @@ export const LuxuryVideoBanner: React.FC = () => {
             </button>
           </div>
 
-          {customVideoName && (
-            <div className="px-2.5 py-1.5 bg-[#FAF6ED] border border-[#E5D8BC] text-[11px] text-[#1A1612] flex items-center justify-between gap-2">
-              <span className="truncate">Active: {customVideoName}</span>
-              <Check className="w-3.5 h-3.5 text-[#157347] shrink-0" />
+          {statusMessage && (
+            <div className="px-2.5 py-1.5 bg-[#FAF6ED] border border-[#157347]/40 text-[11px] text-[#157347] flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              <span>{statusMessage}</span>
             </div>
           )}
 
-          {/* Option 1: Upload Video File */}
           <div>
             <input
               ref={fileInputRef}
               type="file"
-              accept="video/mp4,video/webm,video/quicktime,video/*"
+              accept="video/mp4,video/webm,video/quicktime"
               onChange={(e) => void handleVideoFileChange(e)}
               className="hidden"
             />
             <button
               type="button"
+              disabled={isSaving}
               onClick={() => fileInputRef.current?.click()}
-              className="w-full min-h-[42px] px-3.5 py-2 bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full min-h-[42px] px-3.5 py-2 bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Upload Video File (MP4 / WebM)</span>
+              <span>{isSaving ? 'Saving to Project...' : 'Upload Video File (MP4 / WebM)'}</span>
             </button>
           </div>
 
-          {/* Option 2: Paste Direct Video URL */}
           <form onSubmit={(e) => void handleApplyVideoUrl(e)} className="space-y-2">
             <label className="block text-[11px] font-medium text-[#5C5347]">
               Or paste a direct video URL:
@@ -560,7 +483,8 @@ export const LuxuryVideoBanner: React.FC = () => {
               />
               <button
                 type="submit"
-                className="min-h-[38px] px-3 py-1.5 bg-[#D6B265] border border-[#B58938] text-[#1A1612] hover:bg-[#C59B4A] text-xs font-semibold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                disabled={isSaving}
+                className="min-h-[38px] px-3 py-1.5 bg-[#D6B265] border border-[#B58938] text-[#1A1612] hover:bg-[#C59B4A] text-xs font-semibold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60"
               >
                 <Link2 className="w-3 h-3" />
                 <span>Set</span>
@@ -568,13 +492,12 @@ export const LuxuryVideoBanner: React.FC = () => {
             </div>
           </form>
 
-          {/* Option 3: Toggle SILLUX Title Overlay */}
           <label className="flex items-center justify-between gap-2 pt-2 border-t border-[#ECE2CE] text-xs text-[#1A1612] cursor-pointer">
             <span>Show SILLUX title overlay on video</span>
             <input
               type="checkbox"
               checked={showTitleOverlay}
-              onChange={(e) => handleToggleOverlay(e.target.checked)}
+              onChange={(e) => void handleToggleOverlay(e.target.checked)}
               className="w-4 h-4 accent-[#9A7228] cursor-pointer"
             />
           </label>

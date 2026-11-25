@@ -430,6 +430,106 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== 'production') {
+    const videosDir = path.resolve(process.cwd(), 'src', 'assets', 'videos');
+    const heroMediaConfigPath = path.resolve(process.cwd(), 'src', 'config', 'heroMedia.ts');
+
+    const writeHeroMediaConfig = async (videoSrc: string, showOverlay: boolean) => {
+      fs.mkdirSync(path.dirname(heroMediaConfigPath), { recursive: true });
+      const content = [
+        '// Owner-managed hero banner video configuration.',
+        "// Leave HERO_CUSTOM_VIDEO_SRC as '' to display the built-in Sillux animated commercial reel.",
+        `export const HERO_CUSTOM_VIDEO_SRC = ${JSON.stringify(videoSrc)};`,
+        `export const HERO_SHOW_TITLE_OVERLAY = ${Boolean(showOverlay)};`,
+        '',
+      ].join('\n');
+      fs.writeFileSync(heroMediaConfigPath, content, 'utf-8');
+      const { build } = await import('vite');
+      await build({ mode: 'production', logLevel: 'silent' });
+    };
+
+    const clearSavedVideoFiles = () => {
+      if (!fs.existsSync(videosDir)) return;
+      for (const name of fs.readdirSync(videosDir)) {
+        const candidate = path.resolve(videosDir, name);
+        if (candidate.startsWith(videosDir + path.sep) && name.startsWith('hero-video.')) {
+          fs.rmSync(candidate, { force: true });
+        }
+      }
+    };
+
+    app.post(
+      '/api/dev/hero-video',
+      express.raw({
+        type: ['video/mp4', 'video/webm', 'video/quicktime'],
+        limit: '45mb',
+      }),
+      async (req, res) => {
+        try {
+          const contentType = String(req.headers['content-type'] || '').split(';')[0].trim();
+
+          if (contentType === 'application/json') {
+            const { videoUrl, showOverlay } = (req.body || {}) as {
+              videoUrl?: unknown;
+              showOverlay?: unknown;
+            };
+            const trimmed = typeof videoUrl === 'string' ? videoUrl.trim() : '';
+            if (trimmed) {
+              const isRelative = trimmed.startsWith('/') || trimmed.startsWith('./');
+              if (!isRelative) {
+                const parsed = new URL(trimmed);
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                  res.status(400).json({ error: 'Only HTTP/HTTPS or relative video paths are allowed.' });
+                  return;
+                }
+              }
+            }
+            await writeHeroMediaConfig(trimmed, showOverlay !== false);
+            res.json({ ok: true, videoSrc: trimmed });
+            return;
+          }
+
+          const extMap: Record<string, string> = {
+            'video/mp4': '.mp4',
+            'video/webm': '.webm',
+            'video/quicktime': '.mov',
+          };
+          const ext = extMap[contentType];
+          if (!ext || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+            res.status(400).json({ error: 'Unsupported or empty video file (MP4, WebM, MOV only).' });
+            return;
+          }
+
+          fs.mkdirSync(videosDir, { recursive: true });
+          clearSavedVideoFiles();
+          const targetPath = path.resolve(videosDir, `hero-video${ext}`);
+          if (!targetPath.startsWith(videosDir + path.sep)) {
+            res.status(400).json({ error: 'Invalid video file destination.' });
+            return;
+          }
+          fs.writeFileSync(targetPath, req.body);
+
+          const relativeSrc = `./src/assets/videos/hero-video${ext}`;
+          const showOverlay = String(req.headers['x-show-overlay'] ?? 'true') !== 'false';
+          await writeHeroMediaConfig(relativeSrc, showOverlay);
+          res.json({ ok: true, videoSrc: relativeSrc });
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to save hero video.';
+          res.status(500).json({ error: msg });
+        }
+      }
+    );
+
+    app.delete('/api/dev/hero-video', async (_req, res) => {
+      try {
+        clearSavedVideoFiles();
+        await writeHeroMediaConfig('', true);
+        res.json({ ok: true });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to reset hero video.';
+        res.status(500).json({ error: msg });
+      }
+    });
+
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
