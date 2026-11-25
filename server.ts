@@ -202,7 +202,23 @@ async function startServer() {
     }
   });
 
+  app.options('/api/orders', (req, res) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).end();
+  });
+
   app.post('/api/orders', async (req, res) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
     try {
       const body = req.body as Partial<OrderNotificationPayload>;
       if (
@@ -293,6 +309,20 @@ async function startServer() {
             }
           );
           autoWhatsAppSent = waRes.ok;
+        } catch {
+          autoWhatsAppSent = false;
+        }
+      }
+
+      // Optional unattended WhatsApp dispatch via CallMeBot if CALLMEBOT_API_KEY is configured
+      const callMeBotKey = process.env.CALLMEBOT_API_KEY?.trim();
+      if (!autoWhatsAppSent && callMeBotKey) {
+        try {
+          const cmbUrl = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(
+            CONTACT_INFO.whatsappInternational
+          )}&text=${encodeURIComponent(alertBody)}&apikey=${encodeURIComponent(callMeBotKey)}`;
+          const cmbRes = await fetch(cmbUrl);
+          autoWhatsAppSent = cmbRes.ok;
         } catch {
           autoWhatsAppSent = false;
         }

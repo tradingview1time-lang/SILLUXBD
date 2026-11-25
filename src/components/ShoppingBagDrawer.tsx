@@ -224,38 +224,71 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
     setConfirmGmailOpen(false);
     onClearBag();
 
-    if (
+    const isStaticHost =
       typeof window !== 'undefined' &&
-      window.location.hostname.endsWith('.github.io')
-    ) {
+      (window.location.hostname.endsWith('.github.io') ||
+        window.location.hostname.toLowerCase() === 'www.silluxbd.de5.net' ||
+        window.location.hostname.toLowerCase() === 'silluxbd.de5.net');
+
+    const envVars = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+    const configuredApiBase = envVars?.VITE_ORDER_API_URL?.trim().replace(/\/+$/, '');
+    const configuredWebhook = envVars?.VITE_ORDER_WEBHOOK_URL?.trim();
+    const orderApiEndpoint = configuredApiBase
+      ? `${configuredApiBase}/api/orders`
+      : isStaticHost
+        ? null
+        : '/api/orders';
+
+    if (!orderApiEndpoint && !configuredWebhook) {
       setConfirmedState((prev) => (prev ? { ...prev, dispatchingServer: false } : null));
       return;
     }
 
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as {
-          autoEmailSent?: boolean;
-          autoWhatsAppSent?: boolean;
-        };
-        setConfirmedState((prev) =>
-          prev
-            ? {
-                ...prev,
-                autoEmailSent: Boolean(data.autoEmailSent),
-                autoWhatsAppSent: Boolean(data.autoWhatsAppSent),
-                dispatchingServer: false,
-              }
-            : null
-        );
-      } else {
-        setConfirmedState((prev) => (prev ? { ...prev, dispatchingServer: false } : null));
+      let autoEmailSent = false;
+      let autoWhatsAppSent = false;
+
+      if (orderApiEndpoint) {
+        const res = await fetch(orderApiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as {
+            autoEmailSent?: boolean;
+            autoWhatsAppSent?: boolean;
+          };
+          autoEmailSent = Boolean(data.autoEmailSent);
+          autoWhatsAppSent = Boolean(data.autoWhatsAppSent);
+        }
       }
+
+      if (configuredWebhook) {
+        try {
+          const hookRes = await fetch(configuredWebhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload),
+          });
+          if (hookRes.ok) {
+            autoEmailSent = true;
+          }
+        } catch {
+          // Ignore optional webhook errors
+        }
+      }
+
+      setConfirmedState((prev) =>
+        prev
+          ? {
+              ...prev,
+              autoEmailSent,
+              autoWhatsAppSent,
+              dispatchingServer: false,
+            }
+          : null
+      );
     } catch {
       setConfirmedState((prev) => (prev ? { ...prev, dispatchingServer: false } : null));
     }
@@ -333,23 +366,82 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                 <div className="flex items-center gap-2.5 text-[#8C641E]">
                   <CheckCircle2 className="w-5 h-5 shrink-0" />
                   <span className="text-xs font-semibold uppercase tracking-wider">
-                    Order Confirmed
+                    Order Confirmed · #{confirmedState.order.orderId}
                   </span>
                 </div>
-                <h3 className="font-display text-2xl text-[#1A1612]">
-                  Order #{confirmedState.order.orderId} — Preparing in Atelier
-                </h3>
-                <div className="p-3 bg-[#FAF6ED] border border-[#E5D8BC] text-xs space-y-1.5">
+
+                <div>
+                  <h3 className="font-display text-2xl text-[#1A1612]">
+                    Your Order Has Been Confirmed
+                  </h3>
+                  <p className="text-xs text-[#8C641E] font-medium mt-1">
+                    Thank you for purchasing from Sillux!
+                  </p>
+                </div>
+
+                <div className="p-3.5 bg-[#FAF6ED] border-l-2 border-[#B58938] text-xs text-[#3F382F] leading-relaxed">
+                  Dear <span className="font-semibold text-[#1A1612]">{confirmedState.order.customerName}</span>, thank you for purchasing from Sillux Atelier. Your{' '}
+                  <span className="font-semibold text-[#1A1612]">
+                    {confirmedState.order.paymentMethod === 'COD'
+                      ? 'Cash on Delivery (COD)'
+                      : confirmedState.order.paymentMethod}
+                  </span>{' '}
+                  order has been confirmed and queued for sterile decanting and preparation. Your parcel will be dispatched to{' '}
+                  <span className="font-semibold text-[#1A1612]">{confirmedState.order.customerAddress}</span>.
+                </div>
+
+                <div className="p-3.5 bg-[#FAF6ED] border border-[#E5D8BC] text-xs space-y-2">
+                  <div className="text-[11px] uppercase tracking-[0.12em] font-semibold text-[#8C641E]">
+                    Confirmed Order &amp; Delivery Details
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[#6D6254]">Customer</span>
+                    <span className="font-semibold text-[#1A1612] text-right">
+                      {confirmedState.order.customerName} ({confirmedState.order.customerPhone})
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-[#6D6254] shrink-0">Delivery Address</span>
+                    <span className="font-medium text-[#1A1612] text-right">
+                      {confirmedState.order.customerAddress}
+                    </span>
+                  </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[#6D6254]">Payment Method</span>
                     <span className="font-semibold text-[#1A1612]">
                       {confirmedState.order.paymentMethod === 'COD'
-                        ? 'Cash on Delivery'
+                        ? 'Cash on Delivery (COD)'
                         : confirmedState.order.paymentMethod}
                     </span>
                   </div>
-                  {typeof confirmedState.order.subtotalBdt === 'number' && (
+                  {confirmedState.order.paymentSenderPhone && (
                     <div className="flex items-center justify-between gap-2">
+                      <span className="text-[#6D6254]">Sender Number</span>
+                      <span className="font-mono tabular-nums text-[#1A1612]">
+                        {confirmedState.order.paymentSenderPhone}
+                      </span>
+                    </div>
+                  )}
+                  {confirmedState.order.paymentTrxId && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[#6D6254]">Transaction ID</span>
+                      <span className="font-mono tabular-nums font-semibold text-[#8C641E]">
+                        {confirmedState.order.paymentTrxId}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="pt-1.5 border-t border-[#E5D8BC] space-y-1">
+                    <div className="text-[#6D6254]">Ordered Fragrances</div>
+                    <ul className="space-y-1 text-[11px] text-[#1A1612]">
+                      {confirmedState.order.itemsSummary.map((line, i) => (
+                        <li key={i}>• {line}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {typeof confirmedState.order.subtotalBdt === 'number' && (
+                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#E5D8BC]">
                       <span className="text-[#6D6254]">Subtotal</span>
                       <span className="font-mono tabular-nums text-[#1A1612]">
                         {formatBdt(confirmedState.order.subtotalBdt)}
@@ -366,38 +458,18 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[#6D6254]">Total</span>
-                    <span className="font-mono tabular-nums font-semibold text-[#1A1612]">
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#E5D8BC]">
+                    <span className="font-semibold text-[#1A1612]">Total Payable</span>
+                    <span className="font-mono tabular-nums font-semibold text-[#8C641E]">
                       {formatBdt(confirmedState.order.totalBdt)}
-                    </span>
-                  </div>
-                  {confirmedState.order.paymentTrxId && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[#6D6254]">Transaction ID</span>
-                      <span className="font-mono tabular-nums font-semibold text-[#8C641E]">
-                        {confirmedState.order.paymentTrxId}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-start justify-between gap-3 pt-1 border-t border-[#E5D8BC]">
-                    <span className="text-[#6D6254] shrink-0">Delivery</span>
-                    <span className="font-medium text-[#1A1612] text-right">
-                      {confirmedState.order.customerAddress}
                     </span>
                   </div>
                 </div>
 
-                <p className="text-xs text-[#5C5347] leading-relaxed">
-                  Thank you, {confirmedState.order.customerName}. Your freshly decanted flacons are
-                  queued for preparation. Notify our bound store channels below for immediate
-                  dispatch confirmation:
-                </p>
-
                 {/* Bound WhatsApp + Gmail Notification Controls */}
                 <div className="pt-3 border-t border-[#ECE2CE] space-y-3">
                   <div className="text-[11px] uppercase tracking-[0.14em] font-semibold text-[#8C641E]">
-                    Order Notification Dispatch
+                    Send Order Details to Store WhatsApp &amp; Gmail
                   </div>
 
                   {/* WhatsApp Notification (01954987111) */}
@@ -420,7 +492,7 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                       className="w-full min-h-[42px] px-3.5 py-2 bg-[#D6B265] border border-[#B58938] text-[#1A1612] hover:bg-[#C59B4A] transition-colors text-xs font-semibold flex items-center justify-center gap-2"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
-                      <span>Send Order Alert to WhatsApp ({CONTACT_INFO.whatsappDisplay})</span>
+                      <span>Send Order Details to WhatsApp ({CONTACT_INFO.whatsappDisplay})</span>
                     </a>
                   </div>
 
@@ -467,18 +539,20 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                         </button>
                       </div>
                     ) : typeof window !== 'undefined' &&
-                      window.location.hostname.endsWith('.github.io') ? (
+                      (window.location.hostname.endsWith('.github.io') ||
+                        window.location.hostname.toLowerCase() === 'www.silluxbd.de5.net' ||
+                        window.location.hostname.toLowerCase() === 'silluxbd.de5.net') ? (
                       <div className="space-y-2">
                         <p className="text-[11px] text-[#5C5347] leading-relaxed">
-                          Open your email client with the full order details pre-filled for{' '}
-                          {CONTACT_INFO.email}:
+                          Send your complete order details directly to our store Gmail (
+                          {CONTACT_INFO.email}):
                         </p>
                         <a
                           href={buildMailtoOrderAlertUrl(confirmedState.order)}
                           className="w-full min-h-[42px] px-3.5 py-2 bg-white border border-[#D8C59B] text-xs font-semibold text-[#1A1612] hover:border-[#B58938] flex items-center justify-center gap-2"
                         >
                           <Mail className="w-3.5 h-3.5 text-[#8C641E]" />
-                          <span>Send Order via Email App ({CONTACT_INFO.email})</span>
+                          <span>Send Order Details to Gmail ({CONTACT_INFO.email})</span>
                         </a>
                       </div>
                     ) : (

@@ -67,6 +67,10 @@ export default defineConfig(({command}) => {
 
           if (fs.existsSync(distDir)) {
             fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
+            const rootCname = path.resolve(__dirname, 'CNAME');
+            if (fs.existsSync(rootCname)) {
+              fs.copyFileSync(rootCname, path.join(distDir, 'CNAME'));
+            }
             if (!process.env.CI && !process.env.GITHUB_ACTIONS) {
               const rootAssetsDir = path.resolve(__dirname, 'assets');
               const distBundleAssetsDir = path.join(distDir, 'assets');

@@ -1899,13 +1899,13 @@ export function formatOrderAlertBody(order: OrderNotificationPayload): string {
       : [`Total Payable: ${formatBdt(order.totalBdt)} BDT`];
 
   return [
-    `NEW SILLUX ORDER: #${order.orderId}`,
+    `NEW SILLUX ORDER (CONFIRMED): #${order.orderId}`,
     `Store Email: ${CONTACT_INFO.email}`,
     `Store WhatsApp: ${CONTACT_INFO.whatsappDisplay}`,
     '',
     `Customer: ${order.customerName}`,
     `Phone: ${order.customerPhone}`,
-    `Address: ${order.customerAddress}`,
+    `Delivery Address: ${order.customerAddress}`,
     `Payment: ${paymentLine}`,
     '',
     'Ordered Fragrances:',
