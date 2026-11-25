@@ -27,6 +27,7 @@ import {
   buildMailtoOrderAlertUrl,
   buildWhatsAppOrderAlertUrl,
   formatBdt,
+  formatOrderAlertBody,
   getPriceForSize,
 } from '../data/perfumes';
 import { saveOrderToStorage } from './OrderStatusModal';
@@ -57,9 +58,13 @@ interface ConfirmedOrderState {
   autoEmailSent: boolean;
   autoWhatsAppSent: boolean;
   gmailManualSent: boolean;
+  web3FormsSent: boolean;
+  web3FormsError: string | null;
   dispatchingServer: boolean;
   gmailError: string | null;
 }
+
+const DEFAULT_WEB3FORMS_ACCESS_KEY = '047e7591-b0ee-4374-a920-d840a9513900';
 
 export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
   open,
@@ -218,6 +223,8 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
       autoEmailSent: false,
       autoWhatsAppSent: false,
       gmailManualSent: false,
+      web3FormsSent: false,
+      web3FormsError: null,
       dispatchingServer: true,
       gmailError: null,
     });
@@ -231,6 +238,7 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
         window.location.hostname.toLowerCase() === 'silluxbd.de5.net');
 
     const envVars = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+    const web3FormsKey = envVars?.VITE_WEB3FORMS_ACCESS_KEY?.trim() || DEFAULT_WEB3FORMS_ACCESS_KEY;
     const configuredApiBase = envVars?.VITE_ORDER_API_URL?.trim().replace(/\/+$/, '');
     const configuredWebhook = envVars?.VITE_ORDER_WEBHOOK_URL?.trim();
     const orderApiEndpoint = configuredApiBase
@@ -239,45 +247,95 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
         ? null
         : '/api/orders';
 
-    if (!orderApiEndpoint && !configuredWebhook) {
-      setConfirmedState((prev) => (prev ? { ...prev, dispatchingServer: false } : null));
-      return;
-    }
+    const web3FormsPayload = {
+      access_key: web3FormsKey,
+      subject: `New Sillux Order #${code} · ${orderPayload.customerName} (${formatBdt(totalPayable)} BDT)`,
+      from_name: 'Sillux Fragrance Atelier',
+      order_id: code,
+      customer_name: orderPayload.customerName,
+      customer_phone: orderPayload.customerPhone,
+      delivery_zone: deliveryZone,
+      district_name: districtName.trim(),
+      area_or_road: areaOrRoadName.trim(),
+      house_number: houseNumber.trim() || 'N/A',
+      delivery_address: formattedAddress,
+      payment_method: paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : paymentMethod,
+      payment_sender_phone: cleanSender || 'N/A',
+      payment_trx_id: cleanTrxId || 'N/A',
+      cart_items: itemsSummary.join('\n'),
+      subtotal_bdt: `${formatBdt(subtotal)} BDT`,
+      delivery_charge_bdt: `${formatBdt(deliveryCharge)} BDT`,
+      total_price_bdt: `${formatBdt(totalPayable)} BDT`,
+      message: formatOrderAlertBody(orderPayload),
+    };
 
     try {
       let autoEmailSent = false;
       let autoWhatsAppSent = false;
+      let web3FormsSent = false;
+      let web3FormsError: string | null = null;
 
-      if (orderApiEndpoint) {
-        const res = await fetch(orderApiEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderPayload),
-        });
-        if (res.ok) {
-          const data = (await res.json()) as {
-            autoEmailSent?: boolean;
-            autoWhatsAppSent?: boolean;
+      const web3FormsPromise = fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(web3FormsPayload),
+      })
+        .then(async (res) => {
+          const data = (await res.json().catch(() => ({}))) as {
+            success?: boolean;
+            message?: string;
           };
-          autoEmailSent = Boolean(data.autoEmailSent);
-          autoWhatsAppSent = Boolean(data.autoWhatsAppSent);
-        }
-      }
+          if (res.ok && data.success) {
+            web3FormsSent = true;
+            autoEmailSent = true;
+          } else {
+            web3FormsError =
+              data.message || 'Direct email relay could not confirm; you can still notify via WhatsApp below.';
+          }
+        })
+        .catch(() => {
+          web3FormsError =
+            'Network interruption while sending order alert; you can still notify via WhatsApp below.';
+        });
 
-      if (configuredWebhook) {
-        try {
-          const hookRes = await fetch(configuredWebhook, {
+      const backendPromise = orderApiEndpoint
+        ? fetch(orderApiEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderPayload),
-          });
-          if (hookRes.ok) {
-            autoEmailSent = true;
-          }
-        } catch {
-          // Ignore optional webhook errors
-        }
-      }
+          })
+            .then(async (res) => {
+              if (!res.ok) return;
+              const data = (await res.json()) as {
+                autoEmailSent?: boolean;
+                autoWhatsAppSent?: boolean;
+              };
+              if (data.autoEmailSent) autoEmailSent = true;
+              if (data.autoWhatsAppSent) autoWhatsAppSent = true;
+            })
+            .catch(() => {
+              // Ignore optional backend notification errors
+            })
+        : Promise.resolve();
+
+      const webhookPromise = configuredWebhook
+        ? fetch(configuredWebhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload),
+          })
+            .then((res) => {
+              if (res.ok) autoEmailSent = true;
+            })
+            .catch(() => {
+              // Ignore optional webhook errors
+            })
+        : Promise.resolve();
+
+      await Promise.all([web3FormsPromise, backendPromise, webhookPromise]);
 
       setConfirmedState((prev) =>
         prev
@@ -285,6 +343,8 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
               ...prev,
               autoEmailSent,
               autoWhatsAppSent,
+              web3FormsSent,
+              web3FormsError: web3FormsSent ? null : web3FormsError,
               dispatchingServer: false,
             }
           : null
@@ -389,6 +449,28 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                   order has been confirmed and queued for sterile decanting and preparation. Your parcel will be dispatched to{' '}
                   <span className="font-semibold text-[#1A1612]">{confirmedState.order.customerAddress}</span>.
                 </div>
+
+                {confirmedState.dispatchingServer ? (
+                  <div className="p-3 bg-[#FAF6ED] border border-[#E5D8BC] text-xs text-[#6D6254]">
+                    Submitting order details to Sillux Atelier...
+                  </div>
+                ) : confirmedState.web3FormsSent ? (
+                  <div
+                    role="status"
+                    className="p-3 bg-[#F3FAF6] border border-[#157347]/40 text-xs text-[#157347] font-medium flex items-start gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>
+                      Order alert received! Your complete order, items, and delivery details have
+                      been successfully sent to Sillux Atelier ({CONTACT_INFO.email}).
+                    </span>
+                  </div>
+                ) : confirmedState.web3FormsError ? (
+                  <div className="p-3 bg-[#FDF4EC] border border-[#C87941]/45 text-[11px] text-[#6B3E1B] flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#B45E25]" />
+                    <span>{confirmedState.web3FormsError}</span>
+                  </div>
+                ) : null}
 
                 <div className="p-3.5 bg-[#FAF6ED] border border-[#E5D8BC] text-xs space-y-2">
                   <div className="text-[11px] uppercase tracking-[0.12em] font-semibold text-[#8C641E]">
