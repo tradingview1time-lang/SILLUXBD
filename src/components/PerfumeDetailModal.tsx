@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   X,
   ShoppingBag,
+  ShoppingCart,
+  Check,
   Heart,
   MessageCircle,
   ChevronLeft,
@@ -93,18 +95,22 @@ interface PerfumeDetailModalProps {
   perfume: Perfume | null;
   initialSize?: PerfumeSizeId;
   isSaved: boolean;
+  getInCartCount?: (perfumeId: string, sizeId: PerfumeSizeId) => number;
   onClose: () => void;
   onToggleWishlist: (perfume: Perfume, sizeId: PerfumeSizeId) => void;
   onShopNow: (perfume: Perfume, sizeId: PerfumeSizeId) => void;
+  onAddToCart?: (perfume: Perfume, sizeId: PerfumeSizeId) => void;
 }
 
 export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   perfume,
   initialSize = '10ML',
   isSaved,
+  getInCartCount,
   onClose,
   onToggleWishlist,
   onShopNow,
+  onAddToCart,
 }) => {
   const [selectedSize, setSelectedSize] = useState<PerfumeSizeId>(initialSize);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
@@ -119,9 +125,14 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
     initialSize === 'FULL' ? 'perfume-size' : 'size'
   );
   const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
+  const [cartAddedAnim, setCartAddedAnim] = useState<{
+    active: boolean;
+    seq: number;
+  }>({ active: false, seq: 0 });
 
   const galleryTrackRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cartAnimTimerRef = useRef<number | null>(null);
 
   const gallery = perfume ? getPerfumeGallery(perfume) : [];
 
@@ -157,10 +168,23 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
     setActiveImageIndex(0);
     setButtonPulse(null);
     setUploadFeedback(null);
+    setCartAddedAnim({ active: false, seq: 0 });
+    if (cartAnimTimerRef.current !== null) {
+      window.clearTimeout(cartAnimTimerRef.current);
+      cartAnimTimerRef.current = null;
+    }
     if (galleryTrackRef.current) {
       galleryTrackRef.current.scrollTo({ left: 0, behavior: 'auto' });
     }
   }, [perfume, initialSize]);
+
+  useEffect(() => {
+    return () => {
+      if (cartAnimTimerRef.current !== null) {
+        window.clearTimeout(cartAnimTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!perfume) return;
@@ -221,6 +245,24 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   const selectedSizeStockOut = isSizeOutOfStock(perfume, selectedSize);
   const fullyStockOut = isPerfumeFullyOutOfStock(perfume);
   const stockLabel = getStockLabel(perfume);
+  const inCartQty = getInCartCount ? getInCartCount(perfume.id, selectedSize) : 0;
+
+  const handleAnimatedAddToCart = () => {
+    if (selectedSizeStockOut) return;
+    if (onAddToCart) {
+      onAddToCart(perfume, selectedSize);
+    } else {
+      onShopNow(perfume, selectedSize);
+    }
+    setCartAddedAnim((prev) => ({ active: true, seq: prev.seq + 1 }));
+    if (cartAnimTimerRef.current !== null) {
+      window.clearTimeout(cartAnimTimerRef.current);
+    }
+    cartAnimTimerRef.current = window.setTimeout(() => {
+      setCartAddedAnim((prev) => ({ ...prev, active: false }));
+      cartAnimTimerRef.current = null;
+    }, 1500);
+  };
 
   const getSizePhoto = (sizeId: PerfumeSizeId): string => {
     return (
@@ -709,8 +751,8 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                   {sizeMeta.description}
                 </p>
 
-                {/* Primary Actions */}
-                <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {/* Primary Actions: Shop Now + Animated Add to Cart directly below + Secondary Actions */}
+                <div className="space-y-2.5 pt-1">
                   <button
                     type="button"
                     disabled={selectedSizeStockOut}
@@ -719,7 +761,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                       onShopNow(perfume, selectedSize);
                       onClose();
                     }}
-                    className={`flex-1 min-w-[200px] min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-3 text-xs font-semibold whitespace-nowrap transition-colors ${
+                    className={`w-full min-h-[46px] inline-flex items-center justify-center gap-2 px-5 py-3 text-xs font-semibold whitespace-nowrap transition-colors ${
                       selectedSizeStockOut
                         ? 'bg-[#FEF2F2] border border-[#DC2626] text-[#B91C1C] cursor-not-allowed'
                         : 'bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white cursor-pointer'
@@ -733,29 +775,89 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onToggleWishlist(perfume, selectedSize)}
-                    aria-pressed={isSaved}
-                    className={`min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-3 border text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                      isSaved
-                        ? 'border-[#B58938] bg-[#FBF6EA] text-[#8C641E]'
-                        : 'bg-white border-[#DFD1B4] text-[#2B241D] hover:border-[#B58938] hover:text-[#1A1612]'
-                    }`}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-[#C59B4A] text-[#9A7228]' : ''}`} />
-                    <span>{isSaved ? 'Saved' : 'Save'}</span>
-                  </button>
+                  {/* Animated Add to Cart Button Directly Below Shop Now */}
+                  <div className="relative">
+                    {cartAddedAnim.seq > 0 && cartAddedAnim.active && (
+                      <>
+                        <span
+                          key={`cart-ring-${cartAddedAnim.seq}`}
+                          aria-hidden="true"
+                          className="animate-sillux-cart-ring pointer-events-none absolute inset-0 border-2 border-[#C59B4A]"
+                        />
+                        <span
+                          key={`cart-float-${cartAddedAnim.seq}`}
+                          aria-hidden="true"
+                          className="animate-sillux-cart-float pointer-events-none absolute right-3 -top-2.5 z-20 px-2 py-0.5 bg-[#1A1612] border border-[#C59B4A] text-[10px] font-mono font-semibold text-[#F1D8A2] shadow-sm"
+                        >
+                          +1 Added
+                        </span>
+                      </>
+                    )}
 
-                  <a
-                    href={whatsappInquiry}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-[#DFD1B4] text-xs font-medium text-[#8C641E] hover:border-[#B58938] hover:bg-[#FBF6EA] transition-colors whitespace-nowrap"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>{selectedSizeStockOut ? 'Request Restock' : 'Ask on WhatsApp'}</span>
-                  </a>
+                    <button
+                      type="button"
+                      data-sillux-add-to-cart="true"
+                      disabled={selectedSizeStockOut}
+                      onClick={handleAnimatedAddToCart}
+                      className={`sillux-add-cart-btn group relative overflow-hidden w-full min-h-[46px] inline-flex items-center justify-center gap-2 px-5 py-3 border text-xs font-semibold whitespace-nowrap ${
+                        selectedSizeStockOut
+                          ? 'bg-[#F8F5EE] border-[#DFD1B4] text-[#9A8E7E] cursor-not-allowed'
+                          : cartAddedAnim.active
+                            ? 'bg-[#157347] border-[#0F5132] text-white cursor-pointer shadow-[0_10px_24px_-10px_rgba(21,115,71,0.45)]'
+                            : 'bg-[#F7E8C3] border-[#B58938] text-[#1A1612] hover:bg-[#D6B265] cursor-pointer'
+                      }`}
+                    >
+                      {!selectedSizeStockOut && !cartAddedAnim.active && (
+                        <span
+                          aria-hidden="true"
+                          className="animate-sillux-cart-sheen pointer-events-none absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
+                        />
+                      )}
+
+                      {cartAddedAnim.active ? (
+                        <Check
+                          key={`check-${cartAddedAnim.seq}`}
+                          className="relative z-10 w-4 h-4 animate-sillux-cart-check shrink-0"
+                        />
+                      ) : (
+                        <ShoppingCart className="relative z-10 w-3.5 h-3.5 text-[#8C641E] transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-6 shrink-0" />
+                      )}
+
+                      <span className="relative z-10">
+                        {selectedSizeStockOut
+                          ? `Unavailable · ${stockLabel}`
+                          : cartAddedAnim.active
+                            ? `Added to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`
+                            : `Add to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => onToggleWishlist(perfume, selectedSize)}
+                      aria-pressed={isSaved}
+                      className={`min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-3 border text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                        isSaved
+                          ? 'border-[#B58938] bg-[#FBF6EA] text-[#8C641E]'
+                          : 'bg-white border-[#DFD1B4] text-[#2B241D] hover:border-[#B58938] hover:text-[#1A1612]'
+                      }`}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-[#C59B4A] text-[#9A7228]' : ''}`} />
+                      <span>{isSaved ? 'Saved' : 'Save'}</span>
+                    </button>
+
+                    <a
+                      href={whatsappInquiry}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-[#DFD1B4] text-xs font-medium text-[#8C641E] hover:border-[#B58938] hover:bg-[#FBF6EA] transition-colors whitespace-nowrap"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>{selectedSizeStockOut ? 'Request Restock' : 'Ask on WhatsApp'}</span>
+                    </a>
+                  </div>
                 </div>
               </div>
 

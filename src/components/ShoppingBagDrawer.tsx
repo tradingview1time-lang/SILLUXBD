@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import {
   CONTACT_INFO,
+  DELIVERY_CHARGES_BDT,
+  DeliveryZoneId,
   OrderNotificationPayload,
   PAYMENT_METHODS,
   PaymentMethodId,
@@ -74,7 +76,10 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
 }) => {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
+  const [deliveryZone, setDeliveryZone] = useState<DeliveryZoneId>('Dhaka');
+  const [districtName, setDistrictName] = useState('Dhaka');
+  const [areaOrRoadName, setAreaOrRoadName] = useState('');
+  const [houseNumber, setHouseNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>('COD');
   const [walletSenderPhone, setWalletSenderPhone] = useState('');
   const [paymentTrxId, setPaymentTrxId] = useState('');
@@ -89,6 +94,8 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
     (sum, item) => sum + getPriceForSize(item.perfume, item.sizeId) * item.quantity,
     0
   );
+  const deliveryCharge = DELIVERY_CHARGES_BDT[deliveryZone];
+  const totalPayable = subtotal + deliveryCharge;
 
   const selectedPaymentMeta =
     PAYMENT_METHODS.find((m) => m.id === paymentMethod) ?? PAYMENT_METHODS[0];
@@ -104,6 +111,29 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
     }
   };
 
+  const handleSelectZone = (zone: DeliveryZoneId) => {
+    setDeliveryZone(zone);
+    if (zone === 'Dhaka') {
+      if (!districtName.trim()) {
+        setDistrictName('Dhaka');
+      }
+    } else if (districtName.trim().toLowerCase() === 'dhaka') {
+      setDistrictName('');
+    }
+  };
+
+  const buildFormattedAddress = () => {
+    const parts = [
+      `Zone: ${deliveryZone}`,
+      `District: ${districtName.trim()}`,
+      `Area/Road: ${areaOrRoadName.trim()}`,
+    ];
+    if (houseNumber.trim()) {
+      parts.push(`House: ${houseNumber.trim()}`);
+    }
+    return parts.join(', ');
+  };
+
   const buildWhatsAppOrderLink = () => {
     const lines = items.map((item) => {
       const sizeObj = PERFUME_SIZES.find((s) => s.id === item.sizeId);
@@ -115,10 +145,26 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
     const paymentNote = isMobileWallet
       ? `Payment: ${paymentMethod}${paymentTrxId.trim() ? ` (TrxID: ${paymentTrxId.trim()})` : ''}`
       : 'Payment: Cash on Delivery (COD)';
+    const recipientDetails: string[] = [];
+    if (customerName.trim()) recipientDetails.push(`Name: ${customerName.trim()}`);
+    if (customerPhone.trim()) recipientDetails.push(`Phone: ${customerPhone.trim()}`);
+    if (areaOrRoadName.trim() || districtName.trim()) {
+      const addrParts = [
+        `Zone: ${deliveryZone}`,
+        districtName.trim() ? `District: ${districtName.trim()}` : null,
+        areaOrRoadName.trim() ? `Area/Road: ${areaOrRoadName.trim()}` : null,
+        houseNumber.trim() ? `House: ${houseNumber.trim()}` : null,
+      ].filter(Boolean);
+      recipientDetails.push(`Delivery: ${addrParts.join(', ')}`);
+    }
+    const deliveryBlock =
+      recipientDetails.length > 0 ? `\n${recipientDetails.join('\n')}` : '';
     const text = encodeURIComponent(
-      `Hello Sillux Atelier, I would like to place an order:\n${lines.join('\n')}\nTotal: ${formatBdt(
+      `Hello Sillux Atelier, I would like to place an order:\n${lines.join('\n')}\nSubtotal: ${formatBdt(
         subtotal
-      )} BDT\n${paymentNote}`
+      )} BDT\nDelivery Charge (${deliveryZone}): ${formatBdt(deliveryCharge)} BDT\nTotal: ${formatBdt(
+        totalPayable
+      )} BDT\n${paymentNote}${deliveryBlock}`
     );
     return `${CONTACT_INFO.whatsappUrl}?text=${text}`;
   };
@@ -137,14 +183,18 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
     });
     const cleanTrxId = isMobileWallet ? paymentTrxId.trim().toUpperCase() : undefined;
     const cleanSender = isMobileWallet ? walletSenderPhone.trim() : undefined;
+    const formattedAddress = buildFormattedAddress();
 
     const orderPayload: OrderNotificationPayload = {
       orderId: code,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
-      customerAddress: customerAddress.trim(),
+      customerAddress: formattedAddress,
+      deliveryZone,
+      deliveryChargeBdt: deliveryCharge,
+      subtotalBdt: subtotal,
       itemsSummary,
-      totalBdt: subtotal,
+      totalBdt: totalPayable,
       paymentMethod,
       paymentTrxId: cleanTrxId,
       paymentSenderPhone: cleanSender,
@@ -156,7 +206,7 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
       customerName: orderPayload.customerName,
       customerAddress: orderPayload.customerAddress,
       itemsSummary,
-      totalBdt: subtotal,
+      totalBdt: totalPayable,
       paymentMethod,
       paymentTrxId: cleanTrxId,
       paymentSenderPhone: cleanSender,
@@ -298,6 +348,24 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                         : confirmedState.order.paymentMethod}
                     </span>
                   </div>
+                  {typeof confirmedState.order.subtotalBdt === 'number' && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[#6D6254]">Subtotal</span>
+                      <span className="font-mono tabular-nums text-[#1A1612]">
+                        {formatBdt(confirmedState.order.subtotalBdt)}
+                      </span>
+                    </div>
+                  )}
+                  {typeof confirmedState.order.deliveryChargeBdt === 'number' && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[#6D6254]">
+                        Delivery Charge ({confirmedState.order.deliveryZone ?? 'Standard'})
+                      </span>
+                      <span className="font-mono tabular-nums text-[#1A1612]">
+                        {formatBdt(confirmedState.order.deliveryChargeBdt)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[#6D6254]">Total</span>
                     <span className="font-mono tabular-nums font-semibold text-[#1A1612]">
@@ -312,6 +380,12 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                       </span>
                     </div>
                   )}
+                  <div className="flex items-start justify-between gap-3 pt-1 border-t border-[#E5D8BC]">
+                    <span className="text-[#6D6254] shrink-0">Delivery</span>
+                    <span className="font-medium text-[#1A1612] text-right">
+                      {confirmedState.order.customerAddress}
+                    </span>
+                  </div>
                 </div>
 
                 <p className="text-xs text-[#5C5347] leading-relaxed">
@@ -651,14 +725,69 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
                     placeholder="Contact Phone (e.g. 01954987111)"
                     className="w-full px-3.5 py-2.5 bg-white border border-[#DFD1B4] text-base sm:text-xs text-[#1A1612] placeholder:text-[#8C8070] focus:outline-none focus:border-[#B58938]"
                   />
-                  <input
-                    type="text"
-                    required
-                    value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
-                    placeholder="Delivery Address & City"
-                    className="w-full px-3.5 py-2.5 bg-white border border-[#DFD1B4] text-base sm:text-xs text-[#1A1612] placeholder:text-[#8C8070] focus:outline-none focus:border-[#B58938]"
-                  />
+
+                  <div className="pt-1 space-y-2.5">
+                    <div className="text-[11px] font-semibold text-[#5C5347] uppercase tracking-[0.08em]">
+                      Delivery Address &amp; City
+                    </div>
+
+                    <div
+                      className="grid grid-cols-2 gap-2"
+                      role="radiogroup"
+                      aria-label="Delivery zone"
+                    >
+                      {(['Dhaka', 'Outside Dhaka'] as const).map((zone) => {
+                        const active = deliveryZone === zone;
+                        const fee = DELIVERY_CHARGES_BDT[zone];
+                        return (
+                          <button
+                            key={zone}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => handleSelectZone(zone)}
+                            className={`min-h-[50px] px-3 py-2 border text-center transition-colors cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                              active
+                                ? 'bg-[#FAF6ED] border-[#B58938] text-[#1A1612] shadow-[0_2px_8px_-4px_rgba(140,100,30,0.3)]'
+                                : 'bg-white border-[#DFD1B4] text-[#5C5347] hover:border-[#B58938] hover:text-[#1A1612]'
+                            }`}
+                          >
+                            <span className="text-xs font-semibold">{zone}</span>
+                            <span className="text-[11px] font-mono tabular-nums text-[#8C641E]">
+                              Delivery {formatBdt(fee)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <input
+                      type="text"
+                      required
+                      value={districtName}
+                      onChange={(e) => setDistrictName(e.target.value)}
+                      placeholder="District Name (e.g. Dhaka, Chattogram, Sylhet)"
+                      aria-label="District Name"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#DFD1B4] text-base sm:text-xs text-[#1A1612] placeholder:text-[#8C8070] focus:outline-none focus:border-[#B58938]"
+                    />
+                    <input
+                      type="text"
+                      required
+                      value={areaOrRoadName}
+                      onChange={(e) => setAreaOrRoadName(e.target.value)}
+                      placeholder="Area Name or Road Name"
+                      aria-label="Area Name or Road Name"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#DFD1B4] text-base sm:text-xs text-[#1A1612] placeholder:text-[#8C8070] focus:outline-none focus:border-[#B58938]"
+                    />
+                    <input
+                      type="text"
+                      value={houseNumber}
+                      onChange={(e) => setHouseNumber(e.target.value)}
+                      placeholder="House Number (Optional)"
+                      aria-label="House Number (Optional)"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#DFD1B4] text-base sm:text-xs text-[#1A1612] placeholder:text-[#8C8070] focus:outline-none focus:border-[#B58938]"
+                    />
+                  </div>
                 </div>
               </form>
             </div>
@@ -671,11 +800,23 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
               <span>Complimentary Velvet Travel Pouch</span>
               <span className="text-[#8C641E] font-medium">Included</span>
             </div>
-            <div className="flex items-center justify-between text-base font-semibold text-[#1A1612]">
+            <div className="flex items-center justify-between text-xs text-[#5C5347]">
+              <span>Subtotal</span>
+              <span className="font-mono tabular-nums text-[#1A1612] font-medium">
+                {formatBdt(subtotal)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-[#5C5347]">
+              <span>Delivery Charge ({deliveryZone})</span>
+              <span className="font-mono tabular-nums text-[#8C641E] font-semibold">
+                {formatBdt(deliveryCharge)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-base font-semibold text-[#1A1612] pt-1 border-t border-[#E2D6BC]">
               <span>
                 Total ({paymentMethod === 'COD' ? 'Cash on Delivery' : paymentMethod})
               </span>
-              <span className="font-mono tabular-nums text-lg">{formatBdt(subtotal)}</span>
+              <span className="font-mono tabular-nums text-lg">{formatBdt(totalPayable)}</span>
             </div>
 
             <button
@@ -683,7 +824,8 @@ export const ShoppingBagDrawer: React.FC<ShoppingBagDrawerProps> = ({
               form="sillux-checkout-form"
               className="w-full min-h-[46px] py-3 bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white transition-colors text-xs font-semibold cursor-pointer"
             >
-              Confirm {paymentMethod === 'COD' ? 'COD' : paymentMethod} Order · {formatBdt(subtotal)}
+              Confirm {paymentMethod === 'COD' ? 'COD' : paymentMethod} Order ·{' '}
+              {formatBdt(totalPayable)}
             </button>
 
             <a

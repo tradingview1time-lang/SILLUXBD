@@ -223,6 +223,13 @@ async function startServer() {
         customerName: String(body.customerName).trim(),
         customerPhone: String(body.customerPhone).trim(),
         customerAddress: String(body.customerAddress).trim(),
+        deliveryZone:
+          body.deliveryZone === 'Outside Dhaka' || body.deliveryZone === 'Dhaka'
+            ? body.deliveryZone
+            : undefined,
+        deliveryChargeBdt:
+          typeof body.deliveryChargeBdt === 'number' ? Number(body.deliveryChargeBdt) : undefined,
+        subtotalBdt: typeof body.subtotalBdt === 'number' ? Number(body.subtotalBdt) : undefined,
         itemsSummary: body.itemsSummary.map(String),
         totalBdt: Number(body.totalBdt),
         paymentMethod: body.paymentMethod ?? 'COD',
@@ -364,6 +371,13 @@ async function startServer() {
         customerName: String(order.customerName),
         customerPhone: String(order.customerPhone),
         customerAddress: String(order.customerAddress),
+        deliveryZone:
+          order.deliveryZone === 'Outside Dhaka' || order.deliveryZone === 'Dhaka'
+            ? order.deliveryZone
+            : undefined,
+        deliveryChargeBdt:
+          typeof order.deliveryChargeBdt === 'number' ? Number(order.deliveryChargeBdt) : undefined,
+        subtotalBdt: typeof order.subtotalBdt === 'number' ? Number(order.subtotalBdt) : undefined,
         itemsSummary: order.itemsSummary.map(String),
         totalBdt: Number(order.totalBdt),
         paymentMethod: order.paymentMethod ?? 'COD',

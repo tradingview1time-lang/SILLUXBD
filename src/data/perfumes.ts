@@ -1854,11 +1854,21 @@ export const CONTACT_INFO = {
   studio: 'Sillux Fragrance Atelier · Private Decant Bar',
 };
 
+export type DeliveryZoneId = 'Dhaka' | 'Outside Dhaka';
+
+export const DELIVERY_CHARGES_BDT: Record<DeliveryZoneId, number> = {
+  Dhaka: 80,
+  'Outside Dhaka': 150,
+};
+
 export interface OrderNotificationPayload {
   orderId: string;
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  deliveryZone?: DeliveryZoneId;
+  deliveryChargeBdt?: number;
+  subtotalBdt?: number;
   itemsSummary: string[];
   totalBdt: number;
   paymentMethod: PaymentMethodId;
@@ -1875,6 +1885,19 @@ export function formatOrderAlertBody(order: OrderNotificationPayload): string {
           order.paymentTrxId ? ` · TrxID: ${order.paymentTrxId}` : ''
         }`;
 
+  const pricingLines =
+    typeof order.deliveryChargeBdt === 'number'
+      ? [
+          ...(typeof order.subtotalBdt === 'number'
+            ? [`Subtotal: ${formatBdt(order.subtotalBdt)} BDT`]
+            : []),
+          `Delivery Charge (${order.deliveryZone ?? 'Standard'}): ${formatBdt(
+            order.deliveryChargeBdt
+          )} BDT`,
+          `Total Payable: ${formatBdt(order.totalBdt)} BDT`,
+        ]
+      : [`Total Payable: ${formatBdt(order.totalBdt)} BDT`];
+
   return [
     `NEW SILLUX ORDER: #${order.orderId}`,
     `Store Email: ${CONTACT_INFO.email}`,
@@ -1888,7 +1911,7 @@ export function formatOrderAlertBody(order: OrderNotificationPayload): string {
     'Ordered Fragrances:',
     ...order.itemsSummary.map((line) => `• ${line}`),
     '',
-    `Total Payable: ${formatBdt(order.totalBdt)} BDT`,
+    ...pricingLines,
     `Placed At: ${order.createdAtIso ?? new Date().toISOString()}`,
   ].join('\n');
 }

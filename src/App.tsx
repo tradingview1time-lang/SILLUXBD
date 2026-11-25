@@ -262,6 +262,26 @@ export default function App() {
     setBagOpen(true);
   };
 
+  const handleAddToCart = (perfume: Perfume, sizeId: PerfumeSizeId) => {
+    const sizeLabel = PERFUME_SIZES.find((s) => s.id === sizeId)?.shortLabel ?? sizeId;
+    if (isSizeOutOfStock(perfume, sizeId)) {
+      showToast(`${perfume.name} (${sizeLabel}) is currently ${getStockLabel(perfume)}`);
+      return;
+    }
+    setCart((prev) => {
+      const idx = prev.findIndex(
+        (item) => item.perfume.id === perfume.id && item.sizeId === sizeId
+      );
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        return next;
+      }
+      return [...prev, { perfume, sizeId, quantity: 1 }];
+    });
+    showToast(`Added ${perfume.name} (${sizeLabel}) to your bag`);
+  };
+
   const handleQuickAdd10Ml = (perfume: Perfume) => {
     const chosenSize = getFirstAvailableSize(perfume, '10ML');
     const sizeLabel = PERFUME_SIZES.find((s) => s.id === chosenSize)?.shortLabel ?? chosenSize;
@@ -1101,9 +1121,13 @@ export default function App() {
         perfume={detailState?.perfume ?? null}
         initialSize={detailState?.initialSize ?? '10ML'}
         isSaved={detailState ? wishlistIds.has(detailState.perfume.id) : false}
+        getInCartCount={(perfumeId, sizeId) =>
+          cart.find((item) => item.perfume.id === perfumeId && item.sizeId === sizeId)?.quantity ?? 0
+        }
         onClose={() => setDetailState(null)}
         onToggleWishlist={handleToggleWishlist}
         onShopNow={handleShopNow}
+        onAddToCart={handleAddToCart}
       />
 
       <ExploreMenuDrawer

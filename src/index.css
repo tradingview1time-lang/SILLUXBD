@@ -444,6 +444,101 @@
   will-change: transform;
 }
 
+@keyframes sillux-cart-sheen {
+  0%, 38% {
+    transform: translateX(-140%) skewX(-20deg);
+    opacity: 0;
+  }
+  54% {
+    opacity: 0.85;
+  }
+  74%, 100% {
+    transform: translateX(220%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+@keyframes sillux-cart-ring {
+  0% {
+    transform: scale(0.98, 0.92);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.04, 1.38);
+    opacity: 0;
+  }
+}
+
+@keyframes sillux-cart-check {
+  0% {
+    opacity: 0;
+    transform: scale(0.45) rotate(-18deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.16) rotate(4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes sillux-cart-float {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.92);
+  }
+  20% {
+    opacity: 1;
+    transform: translate3d(0, -4px, 0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate3d(0, -14px, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -22px, 0) scale(0.96);
+  }
+}
+
+.sillux-add-cart-btn {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.sillux-add-cart-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -10px rgba(154, 114, 40, 0.42);
+}
+
+.sillux-add-cart-btn:not(:disabled):active {
+  transform: translateY(0) scale(0.985);
+  transition-duration: 90ms;
+}
+
+.animate-sillux-cart-sheen {
+  animation: sillux-cart-sheen 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.animate-sillux-cart-ring {
+  animation: sillux-cart-ring 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-sillux-cart-check {
+  animation: sillux-cart-check 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-sillux-cart-float {
+  animation: sillux-cart-float 1150ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @media (hover: none), (prefers-reduced-motion: reduce) {
   .sillux-tilt-card,
   .sillux-tilt-image {
@@ -477,13 +572,18 @@
   .animate-sillux-chat-dot-2,
   .animate-sillux-chat-dot-3,
   .animate-sillux-chat-panel,
-  .animate-sillux-marquee {
+  .animate-sillux-marquee,
+  .animate-sillux-cart-sheen,
+  .animate-sillux-cart-ring,
+  .animate-sillux-cart-check,
+  .animate-sillux-cart-float {
     animation: none;
   }
 
   .sillux-gallery-btn,
   .sillux-gallery-btn-sheen,
-  .sillux-bestseller-cta {
+  .sillux-bestseller-cta,
+  .sillux-add-cart-btn {
     transition: none;
   }
 }
