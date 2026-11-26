@@ -199,9 +199,9 @@ export const PERFUMES: Perfume[] = [
     sizePricesBdt: {
       '3ML': 1982,
       '5ML': 3270,
-      '10ML': 6560,
+      '10ML': 6525,
       '15ML': 8995,
-      '30ML': 17990,
+      '30ML': 17325,
       FULL: 64500,
     },
     liquidHex: '#7CC0D8',
@@ -241,7 +241,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Fresh & Citrus',
     displayFamily: 'Fruity & Ambergris',
     fullBottleMl: 100,
-    fullPriceBdt: 18500,
+    fullPriceBdt: 7400,
+    sizePricesBdt: {
+      '3ML': 421,
+      '5ML': 638,
+      '10ML': 1192,
+      '15ML': 1669,
+      '30ML': 3368,
+      FULL: 7400,
+    },
     liquidHex: '#9E9B93',
     accentHex: '#D6D0C4',
     image: './src/assets/images/regenerated_image_1795520126959.jpg',
@@ -1834,7 +1842,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: 'How many wears do I get from each ML size?',
-    a: 'A 3ML vial yields roughly 45 fine-mist sprays (about 10–15 wears). 5ML delivers ~75 sprays, 10ML gives ~150 sprays, 15ML offers ~225 sprays, and a 30ML collector decant lasts 450+ sprays.',
+    a: 'A 3ML vial yields ~45 sprays (about 10–15 wears), 5ML delivers ~75 sprays, 10ML gives ~150 sprays, 15ML offers ~225 sprays, 30ML collector decant lasts ~450 sprays, and a 100ML Full Bottle yields ~1,500 sprays.',
   },
   {
     q: 'How can I place an order or ask for scent recommendations?',

@@ -119,11 +119,12 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
             ))}
           </div>
 
-          <div className="flex items-center flex-wrap gap-1">
+          <div className="flex items-center flex-wrap gap-1.5">
             {PERFUME_SIZES.map((s) => (
               <button
                 key={s.id}
                 type="button"
+                title={`${s.shortLabel} · ${s.spraysEstimate}`}
                 onClick={() => setQuickSize(s.id)}
                 className={`min-h-[34px] px-2 py-1 text-[11px] font-mono tabular-nums border cursor-pointer transition-colors ${
                   quickSize === s.id
@@ -134,6 +135,9 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 {s.shortLabel}
               </button>
             ))}
+            <span className="text-[11px] font-mono text-[#8C641E] pl-1 whitespace-nowrap">
+              {PERFUME_SIZES.find((s) => s.id === quickSize)?.spraysEstimate}
+            </span>
           </div>
         </div>
 

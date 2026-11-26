@@ -562,6 +562,9 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                     </div>
                     <div className="text-sm font-medium text-[#1A1612] mt-0.5 flex items-center gap-2 flex-wrap">
                       <span>{sizeMeta.label}</span>
+                      <span className="font-mono text-xs text-[#8C641E]">
+                        · {sizeMeta.spraysEstimate}
+                      </span>
                       {selectedSizeStockOut && (
                         <span className="px-1.5 py-0.5 bg-[#C62828] text-white text-[10px] font-semibold uppercase tracking-[0.12em]">
                           {stockLabel}
@@ -740,6 +743,19 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                               formatBdt(priceForOpt)
                             )}
                           </div>
+                          <div
+                            className={`text-[9px] font-mono tabular-nums mt-0.5 ${
+                              out
+                                ? active
+                                  ? 'text-white/85'
+                                  : 'text-[#991B1B]/80'
+                                : active
+                                  ? 'text-[#1A1612]/80 font-medium'
+                                  : 'text-[#8C641E]'
+                            }`}
+                          >
+                            {s.spraysEstimate}
+                          </div>
                         </div>
                       </button>
                     );
@@ -747,7 +763,9 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                 </div>
 
                 <p className="text-xs text-[#5C5347] leading-relaxed">
-                  <span className="text-[#1A1612] font-semibold">{sizeMeta.vesselName}:</span>{' '}
+                  <span className="text-[#1A1612] font-semibold">
+                    {sizeMeta.vesselName} ({sizeMeta.spraysEstimate}):
+                  </span>{' '}
                   {sizeMeta.description}
                 </p>
 

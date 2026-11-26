@@ -12,7 +12,7 @@ import {
   PackageSearch,
   Mail,
 } from 'lucide-react';
-import { CONTACT_INFO, DECANTING_STEPS, FAQ_ITEMS, formatBdt } from '../data/perfumes';
+import { CONTACT_INFO, DECANTING_STEPS, FAQ_ITEMS, PERFUME_SIZES, formatBdt } from '../data/perfumes';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { StoredOrderRecord, loadOrdersFromStorage } from './OrderStatusModal';
 
@@ -361,6 +361,27 @@ export const ExploreMenuDrawer: React.FC<ExploreMenuDrawerProps> = ({
                     <p className="text-xs text-[#5C5347] leading-relaxed">{item.detail}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className="p-4 bg-white border border-[#DFD1B4] space-y-2.5">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-[#8C641E] font-semibold">
+                  Sprays Per ML Yield
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {PERFUME_SIZES.map((s) => (
+                    <div
+                      key={s.id}
+                      className="p-2 bg-[#FAF6ED] border border-[#E5D8BC] text-center"
+                    >
+                      <div className="font-mono text-xs font-semibold text-[#1A1612]">
+                        {s.id === 'FULL' ? '100ML Full' : s.shortLabel}
+                      </div>
+                      <div className="font-mono tabular-nums text-[11px] font-medium text-[#8C641E] mt-0.5">
+                        {s.spraysEstimate}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <button

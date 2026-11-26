@@ -179,29 +179,36 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                     </div>
 
                     {/* Preferred ML Size Switcher */}
-                    <div className="grid grid-cols-6 gap-1">
-                      {PERFUME_SIZES.map((s) => {
-                        const isSel = preferredSize === s.id;
-                        const sizeOut = isSizeOutOfStock(perfume, s.id);
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => onChangeSize(perfume.id, s.id)}
-                            className={`min-h-[36px] py-1 text-[10px] font-mono tabular-nums border text-center transition-colors cursor-pointer ${
-                              sizeOut
-                                ? isSel
-                                  ? 'bg-[#C62828] text-white border-[#991B1B] font-semibold line-through'
-                                  : 'bg-[#FEF2F2] text-[#B91C1C] border-[#DC2626] line-through'
-                                : isSel
-                                  ? 'bg-[#D6B265] text-[#1A1612] border-[#B58938] font-semibold'
-                                  : 'bg-[#FAF7F0] text-[#5C5347] border-[#DFD1B4] hover:text-[#1A1612]'
-                            }`}
-                          >
-                            {s.id === 'FULL' ? 'Full' : s.shortLabel}
-                          </button>
-                        );
-                      })}
+                    <div className="space-y-1">
+                      <div className="grid grid-cols-6 gap-1">
+                        {PERFUME_SIZES.map((s) => {
+                          const isSel = preferredSize === s.id;
+                          const sizeOut = isSizeOutOfStock(perfume, s.id);
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              title={`${s.shortLabel} · ${s.spraysEstimate}`}
+                              onClick={() => onChangeSize(perfume.id, s.id)}
+                              className={`min-h-[36px] py-1 text-[10px] font-mono tabular-nums border text-center transition-colors cursor-pointer ${
+                                sizeOut
+                                  ? isSel
+                                    ? 'bg-[#C62828] text-white border-[#991B1B] font-semibold line-through'
+                                    : 'bg-[#FEF2F2] text-[#B91C1C] border-[#DC2626] line-through'
+                                  : isSel
+                                    ? 'bg-[#D6B265] text-[#1A1612] border-[#B58938] font-semibold'
+                                    : 'bg-[#FAF7F0] text-[#5C5347] border-[#DFD1B4] hover:text-[#1A1612]'
+                              }`}
+                            >
+                              {s.id === 'FULL' ? 'Full' : s.shortLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="text-[11px] font-mono text-[#8C641E]">
+                        {PERFUME_SIZES.find((s) => s.id === preferredSize)?.shortLabel}:{' '}
+                        {PERFUME_SIZES.find((s) => s.id === preferredSize)?.spraysEstimate}
+                      </div>
                     </div>
 
                     {/* Actions */}
