@@ -28,6 +28,7 @@ import {
   isSizeOutOfStock,
 } from '../data/perfumes';
 import { OlfactoryNotesChart } from './OlfactoryNotesChart';
+import { AnimatedBdtPrice } from './AnimatedBdtPrice';
 
 type MlBannerScope = 'size' | 'perfume-size';
 
@@ -576,20 +577,33 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div
                       className={`font-mono tabular-nums text-2xl font-medium ${
                         selectedSizeStockOut ? 'text-[#B91C1C] line-through' : 'text-[#1A1612]'
                       }`}
                     >
-                      {formatBdt(currentPrice)}
+                      <AnimatedBdtPrice
+                        value={currentPrice}
+                        resetKey={perfume.id}
+                        data-sillux-header-price="true"
+                      />
                     </div>
                     <div
                       className={`text-[11px] font-mono tabular-nums ${
                         selectedSizeStockOut ? 'text-[#C62828] font-semibold' : 'text-[#8C641E]'
                       }`}
                     >
-                      {selectedSizeStockOut ? `Currently ${stockLabel}` : sizeMeta.spraysEstimate}
+                      {selectedSizeStockOut ? (
+                        `Currently ${stockLabel}`
+                      ) : quantity > 1 ? (
+                        <>
+                          {quantity} × {formatBdt(currentPrice)} ={' '}
+                          <AnimatedBdtPrice value={currentPrice * quantity} resetKey={perfume.id} />
+                        </>
+                      ) : (
+                        sizeMeta.spraysEstimate
+                      )}
                     </div>
                   </div>
                 </div>
@@ -813,24 +827,35 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
 
                     <button
                       type="button"
+                      data-sillux-shop-now="true"
                       disabled={selectedSizeStockOut}
                       onClick={() => {
                         if (selectedSizeStockOut) return;
                         onShopNow(perfume, selectedSize, quantity);
                         onClose();
                       }}
-                      className={`flex-1 min-w-0 min-h-[46px] inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-5 py-2.5 text-[11px] sm:text-xs font-semibold leading-tight text-center transition-colors ${
+                      className={`group flex-1 min-w-0 min-h-[46px] flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-2.5 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold leading-tight text-center transition-colors ${
                         selectedSizeStockOut
                           ? 'bg-[#FEF2F2] border border-[#DC2626] text-[#B91C1C] cursor-not-allowed'
                           : 'bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white cursor-pointer'
                       }`}
                     >
-                      <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">
-                        {selectedSizeStockOut
-                          ? `${stockLabel} · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel}`
-                          : `Shop Now${quantity > 1 ? ` ×${quantity}` : ''} · ${sizeMeta.id === 'FULL' ? 'Full' : sizeMeta.shortLabel} · ${formatBdt(currentPrice * quantity)}`}
+                      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                        <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {selectedSizeStockOut
+                            ? `${stockLabel} · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel}`
+                            : `Shop Now${quantity > 1 ? ` ×${quantity}` : ''} · ${sizeMeta.id === 'FULL' ? 'Full' : sizeMeta.shortLabel}`}
+                        </span>
                       </span>
+                      {!selectedSizeStockOut && (
+                        <AnimatedBdtPrice
+                          value={currentPrice * quantity}
+                          resetKey={perfume.id}
+                          data-sillux-shop-total="true"
+                          className="font-mono tabular-nums font-bold text-[#F3D792] group-hover:text-white whitespace-nowrap"
+                        />
+                      )}
                     </button>
                   </div>
 
@@ -858,7 +883,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                       data-sillux-add-to-cart="true"
                       disabled={selectedSizeStockOut}
                       onClick={handleAnimatedAddToCart}
-                      className={`sillux-add-cart-btn group relative overflow-hidden w-full min-w-0 min-h-[46px] inline-flex items-center justify-center gap-2 px-3 sm:px-5 py-3 border text-xs font-semibold ${
+                      className={`sillux-add-cart-btn group relative overflow-hidden w-full min-w-0 min-h-[46px] flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-3 sm:px-5 py-2.5 sm:py-3 border text-xs font-semibold leading-tight text-center ${
                         selectedSizeStockOut
                           ? 'bg-[#F8F5EE] border-[#DFD1B4] text-[#9A8E7E] cursor-not-allowed'
                           : cartAddedAnim.active
@@ -873,22 +898,44 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                         />
                       )}
 
-                      {cartAddedAnim.active ? (
-                        <Check
-                          key={`check-${cartAddedAnim.seq}`}
-                          className="relative z-10 w-4 h-4 animate-sillux-cart-check shrink-0"
+                      <span className="relative z-10 inline-flex items-center gap-1.5 whitespace-nowrap">
+                        {cartAddedAnim.active ? (
+                          <Check
+                            key={`check-${cartAddedAnim.seq}`}
+                            className="w-4 h-4 animate-sillux-cart-check shrink-0"
+                          />
+                        ) : (
+                          <ShoppingCart className="w-3.5 h-3.5 text-[#8C641E] transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-6 shrink-0" />
+                        )}
+                        <span>
+                          {selectedSizeStockOut
+                            ? `Unavailable · ${stockLabel}`
+                            : cartAddedAnim.active
+                              ? `Added ${quantity > 1 ? `${quantity} × ` : ''}to Cart · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel}`
+                              : `Add ${quantity > 1 ? `${quantity} × ` : ''}to Cart · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel}`}
+                        </span>
+                      </span>
+
+                      {!selectedSizeStockOut && (
+                        <AnimatedBdtPrice
+                          value={currentPrice * quantity}
+                          resetKey={perfume.id}
+                          data-sillux-cart-total="true"
+                          className={`relative z-10 font-mono tabular-nums font-bold whitespace-nowrap ${
+                            cartAddedAnim.active ? 'text-[#D1FAE5]' : 'text-[#8C641E]'
+                          }`}
                         />
-                      ) : (
-                        <ShoppingCart className="relative z-10 w-3.5 h-3.5 text-[#8C641E] transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-6 shrink-0" />
                       )}
 
-                      <span className="relative z-10 truncate">
-                        {selectedSizeStockOut
-                          ? `Unavailable · ${stockLabel}`
-                          : cartAddedAnim.active
-                            ? `Added ${quantity > 1 ? `${quantity} × ` : ''}to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`
-                            : `Add ${quantity > 1 ? `${quantity} × ` : ''}to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`}
-                      </span>
+                      {!selectedSizeStockOut && inCartQty > 0 && (
+                        <span
+                          className={`relative z-10 font-mono tabular-nums text-[11px] whitespace-nowrap ${
+                            cartAddedAnim.active ? 'text-white/90' : 'text-[#5C5347]'
+                          }`}
+                        >
+                          ({inCartQty} in Bag)
+                        </span>
+                      )}
                     </button>
                   </div>
 

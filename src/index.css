@@ -539,6 +539,38 @@
   animation: sillux-cart-float 1150ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes sillux-price-up {
+  0% {
+    opacity: 0.78;
+    transform: translate3d(0, 4px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sillux-price-down {
+  0% {
+    opacity: 0.78;
+    transform: translate3d(0, -4px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-sillux-price-up {
+  animation: sillux-price-up 560ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-sillux-price-down {
+  animation: sillux-price-down 560ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
+  will-change: transform, opacity;
+}
+
 @media (hover: none), (prefers-reduced-motion: reduce) {
   .sillux-tilt-card,
   .sillux-tilt-image {
@@ -576,7 +608,9 @@
   .animate-sillux-cart-sheen,
   .animate-sillux-cart-ring,
   .animate-sillux-cart-check,
-  .animate-sillux-cart-float {
+  .animate-sillux-cart-float,
+  .animate-sillux-price-up,
+  .animate-sillux-price-down {
     animation: none;
   }
 
