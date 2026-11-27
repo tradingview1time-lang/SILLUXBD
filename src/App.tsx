@@ -242,7 +242,8 @@ export default function App() {
     showToast('Disconnected Gmail account');
   };
 
-  const handleShopNow = (perfume: Perfume, sizeId: PerfumeSizeId) => {
+  const handleShopNow = (perfume: Perfume, sizeId: PerfumeSizeId, quantity = 1) => {
+    const qty = Math.max(1, Math.floor(quantity));
     const sizeLabel = PERFUME_SIZES.find((s) => s.id === sizeId)?.shortLabel ?? sizeId;
     if (isSizeOutOfStock(perfume, sizeId)) {
       showToast(`${perfume.name} (${sizeLabel}) is currently ${getStockLabel(perfume)}`);
@@ -254,16 +255,17 @@ export default function App() {
       );
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + qty };
         return next;
       }
-      return [...prev, { perfume, sizeId, quantity: 1 }];
+      return [...prev, { perfume, sizeId, quantity: qty }];
     });
-    showToast(`Added ${perfume.name} (${sizeLabel}) to your bag`);
+    showToast(`Added ${qty > 1 ? `${qty} × ` : ''}${perfume.name} (${sizeLabel}) to your bag`);
     setBagOpen(true);
   };
 
-  const handleAddToCart = (perfume: Perfume, sizeId: PerfumeSizeId) => {
+  const handleAddToCart = (perfume: Perfume, sizeId: PerfumeSizeId, quantity = 1) => {
+    const qty = Math.max(1, Math.floor(quantity));
     const sizeLabel = PERFUME_SIZES.find((s) => s.id === sizeId)?.shortLabel ?? sizeId;
     if (isSizeOutOfStock(perfume, sizeId)) {
       showToast(`${perfume.name} (${sizeLabel}) is currently ${getStockLabel(perfume)}`);
@@ -275,12 +277,12 @@ export default function App() {
       );
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + qty };
         return next;
       }
-      return [...prev, { perfume, sizeId, quantity: 1 }];
+      return [...prev, { perfume, sizeId, quantity: qty }];
     });
-    showToast(`Added ${perfume.name} (${sizeLabel}) to your bag`);
+    showToast(`Added ${qty > 1 ? `${qty} × ` : ''}${perfume.name} (${sizeLabel}) to your bag`);
   };
 
   const handleQuickAdd10Ml = (perfume: Perfume) => {

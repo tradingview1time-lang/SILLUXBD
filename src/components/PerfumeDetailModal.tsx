@@ -10,6 +10,8 @@ import {
   ChevronRight,
   ImagePlus,
   RotateCcw,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import {
   CONTACT_INFO,
@@ -98,8 +100,8 @@ interface PerfumeDetailModalProps {
   getInCartCount?: (perfumeId: string, sizeId: PerfumeSizeId) => number;
   onClose: () => void;
   onToggleWishlist: (perfume: Perfume, sizeId: PerfumeSizeId) => void;
-  onShopNow: (perfume: Perfume, sizeId: PerfumeSizeId) => void;
-  onAddToCart?: (perfume: Perfume, sizeId: PerfumeSizeId) => void;
+  onShopNow: (perfume: Perfume, sizeId: PerfumeSizeId, quantity?: number) => void;
+  onAddToCart?: (perfume: Perfume, sizeId: PerfumeSizeId, quantity?: number) => void;
 }
 
 export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
@@ -113,6 +115,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   onAddToCart,
 }) => {
   const [selectedSize, setSelectedSize] = useState<PerfumeSizeId>(initialSize);
+  const [quantity, setQuantity] = useState<number>(1);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [buttonPulse, setButtonPulse] = useState<{
     side: 'prev' | 'next';
@@ -164,6 +167,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
     if (!perfume) return;
     const initialResolved = getFirstAvailableSize(perfume, initialSize);
     setSelectedSize(initialResolved);
+    setQuantity(1);
     setUploadScope(initialResolved === 'FULL' ? 'perfume-size' : 'size');
     setActiveImageIndex(0);
     setButtonPulse(null);
@@ -250,9 +254,9 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   const handleAnimatedAddToCart = () => {
     if (selectedSizeStockOut) return;
     if (onAddToCart) {
-      onAddToCart(perfume, selectedSize);
+      onAddToCart(perfume, selectedSize, quantity);
     } else {
-      onShopNow(perfume, selectedSize);
+      onShopNow(perfume, selectedSize, quantity);
     }
     setCartAddedAnim((prev) => ({ active: true, seq: prev.seq + 1 }));
     if (cartAnimTimerRef.current !== null) {
@@ -552,9 +556,9 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
             </div>
 
             {/* Right Column: Contiguous Size Selection, Purchase Module & Olfactory Notes Chart */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 min-w-0 space-y-6">
               {/* Size Selector Module */}
-              <div className="p-5 bg-[#FAF7F0] border border-[#E3D6BC] space-y-4">
+              <div className="p-3.5 sm:p-5 bg-[#FAF7F0] border border-[#E3D6BC] space-y-4 min-w-0">
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
                     <div className="text-[11px] uppercase tracking-[0.16em] text-[#8C641E] font-semibold">
@@ -769,32 +773,69 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                   {sizeMeta.description}
                 </p>
 
-                {/* Primary Actions: Shop Now + Animated Add to Cart directly below + Secondary Actions */}
-                <div className="space-y-2.5 pt-1">
-                  <button
-                    type="button"
-                    disabled={selectedSizeStockOut}
-                    onClick={() => {
-                      if (selectedSizeStockOut) return;
-                      onShopNow(perfume, selectedSize);
-                      onClose();
-                    }}
-                    className={`w-full min-h-[46px] inline-flex items-center justify-center gap-2 px-5 py-3 text-xs font-semibold whitespace-nowrap transition-colors ${
-                      selectedSizeStockOut
-                        ? 'bg-[#FEF2F2] border border-[#DC2626] text-[#B91C1C] cursor-not-allowed'
-                        : 'bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white cursor-pointer'
-                    }`}
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>
-                      {selectedSizeStockOut
-                        ? `${stockLabel} · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel}`
-                        : `Shop Now · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel} · ${formatBdt(currentPrice)}`}
-                    </span>
-                  </button>
+                {/* Primary Actions: Quantity Stepper beside Shop Now + Animated Add to Cart directly below */}
+                <div className="space-y-2.5 pt-1 min-w-0">
+                  <div className="flex items-stretch gap-1.5 sm:gap-2 w-full min-w-0">
+                    <div
+                      role="group"
+                      aria-label="Select perfume quantity"
+                      className={`min-h-[46px] inline-flex items-center border bg-white shrink-0 ${
+                        selectedSizeStockOut
+                          ? 'border-[#E5D8BC] opacity-60'
+                          : 'border-[#D6C39A]'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        aria-label="Decrease quantity"
+                        disabled={selectedSizeStockOut || quantity <= 1}
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        className="w-8 sm:w-9 h-full min-h-[44px] flex items-center justify-center text-[#5C5347] hover:text-[#1A1612] hover:bg-[#FAF6ED] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span
+                        data-sillux-detail-qty="true"
+                        className="min-w-[22px] sm:min-w-[26px] px-0.5 text-center font-mono tabular-nums text-xs font-semibold text-[#1A1612] select-none"
+                      >
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Increase quantity"
+                        disabled={selectedSizeStockOut || quantity >= 99}
+                        onClick={() => setQuantity((q) => Math.min(99, q + 1))}
+                        className="w-8 sm:w-9 h-full min-h-[44px] flex items-center justify-center text-[#5C5347] hover:text-[#1A1612] hover:bg-[#FAF6ED] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={selectedSizeStockOut}
+                      onClick={() => {
+                        if (selectedSizeStockOut) return;
+                        onShopNow(perfume, selectedSize, quantity);
+                        onClose();
+                      }}
+                      className={`flex-1 min-w-0 min-h-[46px] inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-5 py-2.5 text-[11px] sm:text-xs font-semibold leading-tight text-center transition-colors ${
+                        selectedSizeStockOut
+                          ? 'bg-[#FEF2F2] border border-[#DC2626] text-[#B91C1C] cursor-not-allowed'
+                          : 'bg-[#1A1612] text-[#FCFBF8] hover:bg-[#B58938] hover:text-white cursor-pointer'
+                      }`}
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">
+                        {selectedSizeStockOut
+                          ? `${stockLabel} · ${sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel}`
+                          : `Shop Now${quantity > 1 ? ` ×${quantity}` : ''} · ${sizeMeta.id === 'FULL' ? 'Full' : sizeMeta.shortLabel} · ${formatBdt(currentPrice * quantity)}`}
+                      </span>
+                    </button>
+                  </div>
 
                   {/* Animated Add to Cart Button Directly Below Shop Now */}
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     {cartAddedAnim.seq > 0 && cartAddedAnim.active && (
                       <>
                         <span
@@ -807,7 +848,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                           aria-hidden="true"
                           className="animate-sillux-cart-float pointer-events-none absolute right-3 -top-2.5 z-20 px-2 py-0.5 bg-[#1A1612] border border-[#C59B4A] text-[10px] font-mono font-semibold text-[#F1D8A2] shadow-sm"
                         >
-                          +1 Added
+                          +{quantity} Added
                         </span>
                       </>
                     )}
@@ -817,7 +858,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                       data-sillux-add-to-cart="true"
                       disabled={selectedSizeStockOut}
                       onClick={handleAnimatedAddToCart}
-                      className={`sillux-add-cart-btn group relative overflow-hidden w-full min-h-[46px] inline-flex items-center justify-center gap-2 px-5 py-3 border text-xs font-semibold whitespace-nowrap ${
+                      className={`sillux-add-cart-btn group relative overflow-hidden w-full min-w-0 min-h-[46px] inline-flex items-center justify-center gap-2 px-3 sm:px-5 py-3 border text-xs font-semibold ${
                         selectedSizeStockOut
                           ? 'bg-[#F8F5EE] border-[#DFD1B4] text-[#9A8E7E] cursor-not-allowed'
                           : cartAddedAnim.active
@@ -841,12 +882,12 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                         <ShoppingCart className="relative z-10 w-3.5 h-3.5 text-[#8C641E] transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-6 shrink-0" />
                       )}
 
-                      <span className="relative z-10">
+                      <span className="relative z-10 truncate">
                         {selectedSizeStockOut
                           ? `Unavailable · ${stockLabel}`
                           : cartAddedAnim.active
-                            ? `Added to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`
-                            : `Add to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`}
+                            ? `Added ${quantity > 1 ? `${quantity} × ` : ''}to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`
+                            : `Add ${quantity > 1 ? `${quantity} × ` : ''}to Cart · ${selectedSizeDisplayLabel}${inCartQty > 0 ? ` (${inCartQty} in Bag)` : ''}`}
                       </span>
                     </button>
                   </div>
