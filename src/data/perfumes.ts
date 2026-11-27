@@ -80,7 +80,7 @@ export const PERFUME_SIZES: PerfumeSizeOption[] = [
     description: 'Slender pocket glass atomizer with fine-mist brass sprayer for first wearings.',
     priceMultiplier: 0.09,
     heightScale: 0.56,
-    image: createMlVesselSlotImage('3ML', 'Borosilicate Micro-Atomizer', '~45 sprays', 76, 154),
+    image: './src/assets/images/regenerated_image_1795802120882.jpg',
   },
   {
     id: '5ML',
@@ -92,7 +92,7 @@ export const PERFUME_SIZES: PerfumeSizeOption[] = [
     description: 'Thick-walled crystal travel decant with brushed champagne collar.',
     priceMultiplier: 0.13,
     heightScale: 0.66,
-    image: createMlVesselSlotImage('5ML', 'Weighted Glass Travel Spray', '~75 sprays', 92, 178),
+    image: './src/assets/images/regenerated_image_1795802336196.jpg',
   },
   {
     id: '10ML',
@@ -116,7 +116,7 @@ export const PERFUME_SIZES: PerfumeSizeOption[] = [
     description: 'Extended travel edition crafted for multi-week rotation without bulk.',
     priceMultiplier: 0.31,
     heightScale: 0.88,
-    image: createMlVesselSlotImage('15ML', 'Atelier Column Atomizer', '~225 sprays', 128, 224),
+    image: './src/assets/images/regenerated_image_1795802538692.jpg',
   },
   {
     id: '30ML',
@@ -128,7 +128,7 @@ export const PERFUME_SIZES: PerfumeSizeOption[] = [
     description: 'Generous dresser-ready crystal decant with engraved brass plaque.',
     priceMultiplier: 0.54,
     heightScale: 1.0,
-    image: createMlVesselSlotImage('30ML', 'Faceted Apothecary Flacon', '~450 sprays', 156, 246),
+    image: './src/assets/images/regenerated_image_1795802793930.jpg',
   },
   {
     id: 'FULL',
