@@ -104,7 +104,7 @@ export const PERFUME_SIZES: PerfumeSizeOption[] = [
     description: 'Our signature heavy cylindrical glass flacon with magnetic gold cap.',
     priceMultiplier: 0.22,
     heightScale: 0.78,
-    image: createMlVesselSlotImage('10ML', 'Fluted Pocket Flacon', '~150 sprays', 112, 204),
+    image: './src/assets/images/regenerated_image_1795801270840.jpg',
   },
   {
     id: '15ML',

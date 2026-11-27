@@ -8,8 +8,6 @@ import {
   MessageCircle,
   ChevronLeft,
   ChevronRight,
-  ImagePlus,
-  RotateCcw,
   Minus,
   Plus,
 } from 'lucide-react';
@@ -30,8 +28,6 @@ import {
 import { OlfactoryNotesChart } from './OlfactoryNotesChart';
 import { AnimatedBdtPrice } from './AnimatedBdtPrice';
 
-type MlBannerScope = 'size' | 'perfume-size';
-
 interface MlSizePhotoOverrides {
   bySize?: Partial<Record<PerfumeSizeId, string>>;
   byPerfumeSize?: Record<string, Partial<Record<PerfumeSizeId, string>>>;
@@ -50,48 +46,6 @@ function loadMlSizePhotoOverrides(): MlSizePhotoOverrides {
   } catch {
     return {};
   }
-}
-
-async function prepareUploadedBannerImage(file: File): Promise<string> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result);
-      } else {
-        reject(new Error('Could not read selected image file.'));
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read selected image file.'));
-    reader.readAsDataURL(file);
-  });
-
-  if (file.size <= 240_000) {
-    return dataUrl;
-  }
-
-  return new Promise<string>((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const maxDim = 1080;
-      const scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
-      const targetW = Math.max(1, Math.round(img.width * scale));
-      const targetH = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = targetW;
-      canvas.height = targetH;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(dataUrl);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, targetW, targetH);
-      const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-      resolve(canvas.toDataURL(outputType, 0.86));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
 }
 
 interface PerfumeDetailModalProps {
@@ -125,10 +79,6 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   const [mlSizeOverrides, setMlSizeOverrides] = useState<MlSizePhotoOverrides>(() =>
     loadMlSizePhotoOverrides()
   );
-  const [uploadScope, setUploadScope] = useState<MlBannerScope>(
-    initialSize === 'FULL' ? 'perfume-size' : 'size'
-  );
-  const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
   const [cartAddedAnim, setCartAddedAnim] = useState<{
     active: boolean;
     seq: number;
@@ -139,7 +89,6 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   } | null>(null);
 
   const galleryTrackRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cartAnimTimerRef = useRef<number | null>(null);
 
   const gallery = perfume ? getPerfumeGallery(perfume) : [];
@@ -173,10 +122,8 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
     const initialResolved = getFirstAvailableSize(perfume, initialSize);
     setSelectedSize(initialResolved);
     setQuantity(1);
-    setUploadScope(initialResolved === 'FULL' ? 'perfume-size' : 'size');
     setActiveImageIndex(0);
     setButtonPulse(null);
-    setUploadFeedback(null);
     setCartAddedAnim({ active: false, seq: 0 });
     setSizeClickAnim(null);
     if (cartAnimTimerRef.current !== null) {
@@ -280,86 +227,6 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
       perfume.mlSizeImages?.[sizeId] ||
       mlSizeOverrides.bySize?.[sizeId] ||
       getMlSelectorBannerImage(perfume, sizeId)
-    );
-  };
-
-  const selectedSizeDisplayLabel =
-    sizeMeta.id === 'FULL' ? 'Full Bottle' : sizeMeta.shortLabel;
-  const perfumeSizeCustom = mlSizeOverrides.byPerfumeSize?.[perfume.id]?.[selectedSize];
-  const sharedSizeCustom = mlSizeOverrides.bySize?.[selectedSize];
-  const activeCustomScope: MlBannerScope | null = perfumeSizeCustom
-    ? 'perfume-size'
-    : sharedSizeCustom
-      ? 'size'
-      : null;
-
-  const persistSizePhotoOverrides = (next: MlSizePhotoOverrides, confirmation: string) => {
-    try {
-      window.localStorage.setItem(ML_SIZE_PHOTOS_STORAGE_KEY, JSON.stringify(next));
-      setMlSizeOverrides(next);
-      setUploadFeedback(confirmation);
-    } catch {
-      setUploadFeedback(
-        'Browser storage limit reached — please reset an older custom photo or use a smaller image.'
-      );
-    }
-  };
-
-  const applyUploadedFile = async (file: File | undefined | null) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setUploadFeedback('Please select a valid image file (JPG, PNG, or WebP).');
-      return;
-    }
-    try {
-      const processed = await prepareUploadedBannerImage(file);
-      const next: MlSizePhotoOverrides = {
-        bySize: { ...(mlSizeOverrides.bySize ?? {}) },
-        byPerfumeSize: { ...(mlSizeOverrides.byPerfumeSize ?? {}) },
-      };
-      if (uploadScope === 'perfume-size') {
-        next.byPerfumeSize![perfume.id] = {
-          ...(next.byPerfumeSize![perfume.id] ?? {}),
-          [selectedSize]: processed,
-        };
-        persistSizePhotoOverrides(
-          next,
-          `Saved separate ${selectedSizeDisplayLabel} bottle photo for ${perfume.name}.`
-        );
-      } else {
-        next.bySize![selectedSize] = processed;
-        persistSizePhotoOverrides(
-          next,
-          `Saved separate ${selectedSizeDisplayLabel} bottle photo across perfumes.`
-        );
-      }
-    } catch {
-      setUploadFeedback('Could not load the selected image file. Please try another photo.');
-    }
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    void applyUploadedFile(file);
-    e.target.value = '';
-  };
-
-  const handleResetCustomImage = () => {
-    if (!activeCustomScope) return;
-    const next: MlSizePhotoOverrides = {
-      bySize: { ...(mlSizeOverrides.bySize ?? {}) },
-      byPerfumeSize: { ...(mlSizeOverrides.byPerfumeSize ?? {}) },
-    };
-    if (activeCustomScope === 'perfume-size' && next.byPerfumeSize?.[perfume.id]) {
-      const updatedSizes = { ...next.byPerfumeSize[perfume.id] };
-      delete updatedSizes[selectedSize];
-      next.byPerfumeSize[perfume.id] = updatedSizes;
-    } else if (activeCustomScope === 'size' && next.bySize) {
-      delete next.bySize[selectedSize];
-    }
-    persistSizePhotoOverrides(
-      next,
-      `Restored default ${selectedSizeDisplayLabel} bottle image.`
     );
   };
 
@@ -613,85 +480,6 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                   </div>
                 </div>
 
-                {/* Compact Per-Size Bottle Photo Upload Bar */}
-                <div className="border border-[#DFD1B4] bg-[#FBF8F2]">
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                    <div className="text-[11px] text-[#5C5347] flex items-center gap-1.5 min-w-0">
-                      <span className="font-semibold uppercase tracking-[0.12em] text-[#8C641E] whitespace-nowrap">
-                        {selectedSizeDisplayLabel} Bottle Photo
-                      </span>
-                      {activeCustomScope && (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span className="truncate text-[#1A1612] font-medium">
-                            {activeCustomScope === 'perfume-size'
-                              ? `${perfume.name} Only`
-                              : 'All Scents'}
-                          </span>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <label className="sr-only" htmlFor="ml-banner-scope-select">
-                        Apply bottle photo to
-                      </label>
-                      <select
-                        id="ml-banner-scope-select"
-                        value={uploadScope}
-                        onChange={(e) => setUploadScope(e.target.value as MlBannerScope)}
-                        className="min-h-[34px] px-2 py-1 bg-white border border-[#DFD1B4] text-[11px] text-[#2B241D] focus:outline-none focus:border-[#B58938] cursor-pointer"
-                      >
-                        <option value="size">
-                          {selectedSizeDisplayLabel} (All Perfumes)
-                        </option>
-                        <option value="perfume-size">
-                          {selectedSizeDisplayLabel} ({perfume.name} Only)
-                        </option>
-                      </select>
-
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="min-h-[34px] inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-[#DFD1B4] hover:border-[#B58938] hover:bg-[#FBF6EA] text-[11px] font-semibold text-[#1A1612] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                      >
-                        <ImagePlus className="w-3.5 h-3.5 text-[#8C641E]" />
-                        <span>
-                          {activeCustomScope
-                            ? `Change ${sizeMeta.id === 'FULL' ? 'Full' : sizeMeta.shortLabel} Photo`
-                            : `Add ${sizeMeta.id === 'FULL' ? 'Full' : sizeMeta.shortLabel} Photo`}
-                        </span>
-                      </button>
-
-                      {activeCustomScope && (
-                        <button
-                          type="button"
-                          onClick={handleResetCustomImage}
-                          aria-label={`Reset ${selectedSizeDisplayLabel} custom photo`}
-                          title="Reset to default image"
-                          className="min-h-[34px] inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#DFD1B4] hover:border-[#C62828] hover:text-[#B91C1C] text-[11px] font-medium text-[#5C5347] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span className="hidden sm:inline">Reset</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {uploadFeedback && (
-                    <div className="px-3 py-1.5 border-t border-[#ECE2CE] bg-[#FAF6ED] text-[11px] text-[#5C5347]">
-                      {uploadFeedback}
-                    </div>
-                  )}
-                </div>
-
                 {/* 6 Interactive Size Buttons — Each With Its Own Separate Bottle Photo */}
                 <div
                   className="grid grid-cols-3 sm:grid-cols-6 gap-2"
@@ -722,8 +510,6 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                           data-sillux-size-btn={s.id}
                           onClick={() => {
                             setSelectedSize(s.id);
-                            setUploadScope(s.id === 'FULL' ? 'perfume-size' : 'size');
-                            setUploadFeedback(null);
                             setSizeClickAnim((prev) => ({
                               sizeId: s.id,
                               seq: (prev?.seq ?? 0) + 1,
@@ -762,7 +548,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                                 alt={`${perfume.name} ${s.shortLabel} bottle`}
                                 referrerPolicy="no-referrer"
                                 className={`w-full h-full will-change-transform transition-transform duration-300 ease-out ${
-                                  s.id === 'FULL' ? 'object-cover' : 'object-contain'
+                                  optImage.startsWith('data:image/svg') ? 'object-contain' : 'object-cover'
                                 } ${active ? 'scale-[1.06]' : 'scale-100'} ${
                                   out ? 'opacity-70 grayscale-[25%]' : ''
                                 }`}
