@@ -133,6 +133,10 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
     active: boolean;
     seq: number;
   }>({ active: false, seq: 0 });
+  const [sizeClickAnim, setSizeClickAnim] = useState<{
+    sizeId: PerfumeSizeId;
+    seq: number;
+  } | null>(null);
 
   const galleryTrackRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -174,6 +178,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
     setButtonPulse(null);
     setUploadFeedback(null);
     setCartAddedAnim({ active: false, seq: 0 });
+    setSizeClickAnim(null);
     if (cartAnimTimerRef.current !== null) {
       window.clearTimeout(cartAnimTimerRef.current);
       cartAnimTimerRef.current = null;
@@ -698,84 +703,128 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
                     const out = isSizeOutOfStock(perfume, s.id);
                     const priceForOpt = getPriceForSize(perfume, s.id);
                     const optImage = getSizePhoto(s.id);
+                    const justClicked = sizeClickAnim?.sizeId === s.id;
                     return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        onClick={() => {
-                          setSelectedSize(s.id);
-                          setUploadScope(s.id === 'FULL' ? 'perfume-size' : 'size');
-                          setUploadFeedback(null);
-                        }}
-                        className={`flex flex-col overflow-hidden border text-center transition-colors cursor-pointer ${
-                          out
-                            ? active
-                              ? 'bg-[#C62828] text-white border-[#991B1B]'
-                              : 'bg-[#FEF2F2] text-[#B91C1C] border-[#DC2626] hover:bg-[#FEE2E2]'
-                            : active
-                              ? 'bg-[#D6B265] text-[#1A1612] border-[#B58938] ring-1 ring-[#B58938]'
-                              : 'bg-white text-[#2B241D] border-[#DFD1B4] hover:border-[#B58938] hover:text-[#1A1612]'
-                        }`}
-                      >
-                        <div className="aspect-square w-full bg-[#14110E] border-b border-[#E5D8BC] overflow-hidden">
-                          <img
-                            src={optImage}
-                            alt={`${perfume.name} ${s.shortLabel} bottle`}
-                            referrerPolicy="no-referrer"
-                            className={`w-full h-full ${
-                              s.id === 'FULL' ? 'object-cover' : 'object-contain'
-                            } ${out ? 'opacity-70 grayscale-[25%]' : ''}`}
+                      <div key={s.id} className="relative">
+                        {justClicked && sizeClickAnim && (
+                          <span
+                            key={`size-ring-${sizeClickAnim.seq}`}
+                            aria-hidden="true"
+                            className={`animate-sillux-size-ring pointer-events-none absolute -inset-[2px] z-20 border-2 ${
+                              out ? 'border-[#DC2626]' : 'border-[#B58938]'
+                            }`}
                           />
-                        </div>
-                        <div className="py-2 px-1 w-full">
-                          <div
-                            className={`text-xs font-mono tabular-nums font-semibold ${
-                              out ? 'line-through' : ''
+                        )}
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          data-sillux-size-btn={s.id}
+                          onClick={() => {
+                            setSelectedSize(s.id);
+                            setUploadScope(s.id === 'FULL' ? 'perfume-size' : 'size');
+                            setUploadFeedback(null);
+                            setSizeClickAnim((prev) => ({
+                              sizeId: s.id,
+                              seq: (prev?.seq ?? 0) + 1,
+                            }));
+                          }}
+                          className={`sillux-size-tile relative w-full h-full flex flex-col overflow-hidden border text-center cursor-pointer ${
+                            out
+                              ? active
+                                ? 'bg-[#C62828] text-white border-[#991B1B] shadow-[0_8px_18px_-8px_rgba(185,28,28,0.45)]'
+                                : 'bg-[#FEF2F2] text-[#B91C1C] border-[#DC2626] hover:bg-[#FEE2E2]'
+                              : active
+                                ? 'bg-[#D6B265] text-[#1A1612] border-[#B58938] ring-1 ring-[#B58938] shadow-[0_10px_22px_-10px_rgba(181,137,56,0.55)]'
+                                : 'bg-white text-[#2B241D] border-[#DFD1B4] hover:border-[#B58938] hover:text-[#1A1612]'
+                          }`}
+                        >
+                          {justClicked && sizeClickAnim && (
+                            <span
+                              key={`size-sheen-${sizeClickAnim.seq}`}
+                              aria-hidden="true"
+                              className="animate-sillux-size-sheen pointer-events-none absolute inset-0 z-20 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                            />
+                          )}
+
+                          <span
+                            className={`flex flex-col w-full h-full ${
+                              justClicked && sizeClickAnim
+                                ? sizeClickAnim.seq % 2 === 0
+                                  ? 'animate-sillux-size-pop-a'
+                                  : 'animate-sillux-size-pop-b'
+                                : ''
                             }`}
                           >
-                            {s.id === 'FULL' ? 'Full' : s.shortLabel}
-                          </div>
-                          <div
-                            className={`text-[9px] font-mono tabular-nums mt-0.5 ${
-                              out
-                                ? active
-                                  ? 'text-white font-semibold'
-                                  : 'text-[#C62828] font-semibold'
-                                : active
-                                  ? 'text-[#1A1612]/85 font-medium'
-                                  : 'text-[#6D6254]'
-                            }`}
-                          >
-                            {out ? (
-                              <>
-                                <span className="block line-through opacity-80">
-                                  {formatBdt(priceForOpt)}
+                            <span className="relative block aspect-square w-full bg-[#14110E] border-b border-[#E5D8BC] overflow-hidden">
+                              <img
+                                src={optImage}
+                                alt={`${perfume.name} ${s.shortLabel} bottle`}
+                                referrerPolicy="no-referrer"
+                                className={`w-full h-full will-change-transform transition-transform duration-300 ease-out ${
+                                  s.id === 'FULL' ? 'object-cover' : 'object-contain'
+                                } ${active ? 'scale-[1.06]' : 'scale-100'} ${
+                                  out ? 'opacity-70 grayscale-[25%]' : ''
+                                }`}
+                              />
+                              {active && !out && (
+                                <span
+                                  aria-hidden="true"
+                                  className="animate-sillux-size-badge absolute top-1 right-1 z-10 w-4 h-4 bg-[#1A1612] border border-[#D6B265] text-[#F3D792] flex items-center justify-center shadow-sm"
+                                >
+                                  <Check className="w-2.5 h-2.5 stroke-[2.75]" />
                                 </span>
-                                <span className="block text-[8px] uppercase tracking-wide mt-0.5">
-                                  {stockLabel}
-                                </span>
-                              </>
-                            ) : (
-                              formatBdt(priceForOpt)
-                            )}
-                          </div>
-                          <div
-                            className={`text-[9px] font-mono tabular-nums mt-0.5 ${
-                              out
-                                ? active
-                                  ? 'text-white/85'
-                                  : 'text-[#991B1B]/80'
-                                : active
-                                  ? 'text-[#1A1612]/80 font-medium'
-                                  : 'text-[#8C641E]'
-                            }`}
-                          >
-                            {s.spraysEstimate}
-                          </div>
-                        </div>
-                      </button>
+                              )}
+                            </span>
+                            <span className="block py-2 px-1 w-full">
+                              <span
+                                className={`block text-xs font-mono tabular-nums font-semibold ${
+                                  out ? 'line-through' : ''
+                                }`}
+                              >
+                                {s.id === 'FULL' ? 'Full' : s.shortLabel}
+                              </span>
+                              <span
+                                className={`block text-[9px] font-mono tabular-nums mt-0.5 ${
+                                  out
+                                    ? active
+                                      ? 'text-white font-semibold'
+                                      : 'text-[#C62828] font-semibold'
+                                    : active
+                                      ? 'text-[#1A1612]/85 font-medium'
+                                      : 'text-[#6D6254]'
+                                }`}
+                              >
+                                {out ? (
+                                  <>
+                                    <span className="block line-through opacity-80">
+                                      {formatBdt(priceForOpt)}
+                                    </span>
+                                    <span className="block text-[8px] uppercase tracking-wide mt-0.5">
+                                      {stockLabel}
+                                    </span>
+                                  </>
+                                ) : (
+                                  formatBdt(priceForOpt)
+                                )}
+                              </span>
+                              <span
+                                className={`block text-[9px] font-mono tabular-nums mt-0.5 ${
+                                  out
+                                    ? active
+                                      ? 'text-white/85'
+                                      : 'text-[#991B1B]/80'
+                                    : active
+                                      ? 'text-[#1A1612]/80 font-medium'
+                                      : 'text-[#8C641E]'
+                                }`}
+                              >
+                                {s.spraysEstimate}
+                              </span>
+                            </span>
+                          </span>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
