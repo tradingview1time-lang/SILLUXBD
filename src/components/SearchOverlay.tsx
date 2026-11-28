@@ -6,6 +6,7 @@ import {
   Perfume,
   PerfumeSizeId,
   formatBdt,
+  getFirstAvailableSize,
   getPriceForSize,
   getStockLabel,
   isSizeOutOfStock,
@@ -152,9 +153,13 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
             </div>
           ) : (
             results.map((perfume) => {
-              const price = getPriceForSize(perfume, quickSize);
+              const isHiddenQuickSize = Boolean(perfume.hiddenSizes?.includes(quickSize));
+              const effectiveSize = isHiddenQuickSize
+                ? getFirstAvailableSize(perfume, '10ML')
+                : quickSize;
+              const price = getPriceForSize(perfume, effectiveSize);
               const isSaved = wishlistIds.has(perfume.id);
-              const outOfStock = isSizeOutOfStock(perfume, quickSize);
+              const outOfStock = isSizeOutOfStock(perfume, effectiveSize);
               const stockLabel = getStockLabel(perfume);
               return (
                 <div
@@ -164,7 +169,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      onViewNotes(perfume, quickSize);
+                      onViewNotes(perfume, effectiveSize);
                       onClose();
                     }}
                     className="flex items-center gap-4 min-w-0 text-left cursor-pointer group"
@@ -205,7 +210,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => onToggleWishlist(perfume, quickSize)}
+                      onClick={() => onToggleWishlist(perfume, effectiveSize)}
                       aria-label={isSaved ? `Remove ${perfume.name} from wishlist` : `Save ${perfume.name} to wishlist`}
                       aria-pressed={isSaved}
                       className={`min-w-[42px] min-h-[42px] flex items-center justify-center border transition-colors cursor-pointer ${
@@ -220,7 +225,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onViewNotes(perfume, quickSize);
+                        onViewNotes(perfume, effectiveSize);
                         onClose();
                       }}
                       className="min-h-[42px] inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-[#DFD1B4] text-xs text-[#1A1612] hover:border-[#B58938] hover:bg-[#FBF6EA] transition-colors cursor-pointer whitespace-nowrap"
@@ -234,7 +239,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                       disabled={outOfStock}
                       onClick={() => {
                         if (outOfStock) return;
-                        onShopNow(perfume, quickSize);
+                        onShopNow(perfume, effectiveSize);
                         onClose();
                       }}
                       className={`min-h-[42px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
@@ -248,7 +253,11 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                         <span>{stockLabel}</span>
                       ) : (
                         <>
-                          <span>Shop</span>
+                          <span>
+                            {isHiddenQuickSize
+                              ? `Shop (${effectiveSize === 'FULL' ? 'Full' : effectiveSize})`
+                              : 'Shop'}
+                          </span>
                           <span className="font-mono tabular-nums">{formatBdt(price)}</span>
                         </>
                       )}

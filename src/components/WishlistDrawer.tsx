@@ -5,8 +5,10 @@ import {
   Perfume,
   PerfumeSizeId,
   formatBdt,
+  getFirstAvailableSize,
   getPriceForSize,
   getStockLabel,
+  getVisibleSizesForPerfume,
   isSizeOutOfStock,
 } from '../data/perfumes';
 
@@ -96,8 +98,12 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
             <div className="space-y-4">
               {entries.map((entry) => {
                 const { perfume, preferredSize } = entry;
-                const price = getPriceForSize(perfume, preferredSize);
-                const outOfStock = isSizeOutOfStock(perfume, preferredSize);
+                const visibleSizes = getVisibleSizesForPerfume(perfume);
+                const activeSize = visibleSizes.some((s) => s.id === preferredSize)
+                  ? preferredSize
+                  : getFirstAvailableSize(perfume, '10ML');
+                const price = getPriceForSize(perfume, activeSize);
+                const outOfStock = isSizeOutOfStock(perfume, activeSize);
                 const stockLabel = getStockLabel(perfume);
 
                 return (
@@ -109,7 +115,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          onViewNotes(perfume, preferredSize);
+                          onViewNotes(perfume, activeSize);
                           onClose();
                         }}
                         aria-label={`Inspect ${perfume.name} details and sizes`}
@@ -144,7 +150,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  onViewNotes(perfume, preferredSize);
+                                  onViewNotes(perfume, activeSize);
                                   onClose();
                                 }}
                                 className="text-left hover:text-[#8C641E] transition-colors cursor-pointer truncate max-w-full"
@@ -180,9 +186,13 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
 
                     {/* Preferred ML Size Switcher */}
                     <div className="space-y-1">
-                      <div className="grid grid-cols-6 gap-1">
-                        {PERFUME_SIZES.map((s) => {
-                          const isSel = preferredSize === s.id;
+                      <div
+                        className={`grid ${
+                          visibleSizes.length === 5 ? 'grid-cols-5' : 'grid-cols-6'
+                        } gap-1`}
+                      >
+                        {visibleSizes.map((s) => {
+                          const isSel = activeSize === s.id;
                           const sizeOut = isSizeOutOfStock(perfume, s.id);
                           return (
                             <button
@@ -206,8 +216,8 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                         })}
                       </div>
                       <div className="text-[11px] font-mono text-[#8C641E]">
-                        {PERFUME_SIZES.find((s) => s.id === preferredSize)?.shortLabel}:{' '}
-                        {PERFUME_SIZES.find((s) => s.id === preferredSize)?.spraysEstimate}
+                        {PERFUME_SIZES.find((s) => s.id === activeSize)?.shortLabel}:{' '}
+                        {PERFUME_SIZES.find((s) => s.id === activeSize)?.spraysEstimate}
                       </div>
                     </div>
 
@@ -216,7 +226,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          onViewNotes(perfume, preferredSize);
+                          onViewNotes(perfume, activeSize);
                           onClose();
                         }}
                         className="flex-1 min-h-[42px] inline-flex items-center justify-center gap-1.5 py-2 bg-white border border-[#DFD1B4] text-xs text-[#1A1612] hover:border-[#B58938] hover:bg-[#FBF6EA] transition-colors cursor-pointer"
@@ -230,7 +240,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                         disabled={outOfStock}
                         onClick={() => {
                           if (outOfStock) return;
-                          onShopNow(perfume, preferredSize);
+                          onShopNow(perfume, activeSize);
                           onClose();
                         }}
                         className={`flex-1 min-h-[42px] inline-flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${

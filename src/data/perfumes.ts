@@ -174,6 +174,7 @@ export interface Perfume {
   bestsellerRank?: number;
   outOfStock?: boolean;
   outOfStockSizes?: PerfumeSizeId[];
+  hiddenSizes?: PerfumeSizeId[];
   stockLabel?: string;
   longevity: string;
   sillage: string;
@@ -332,12 +333,12 @@ export const PERFUMES: Perfume[] = [
     displayFamily: 'Floral & Tea & Soapy',
     fullBottleMl: 100,
     fullPriceBdt: 4800,
+    hiddenSizes: ['30ML'],
     sizePricesBdt: {
       '3ML': 585,
       '5ML': 858,
       '10ML': 1498,
       '15ML': 2114,
-      '30ML': 4230,
       FULL: 4800,
     },
     liquidHex: '#6E6833',
@@ -375,7 +376,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Fresh & Citrus',
     displayFamily: 'Icy Citrus & Amber',
     fullBottleMl: 100,
-    fullPriceBdt: 14500,
+    fullPriceBdt: 3900,
+    sizePricesBdt: {
+      '3ML': 245,
+      '5ML': 358,
+      '10ML': 588,
+      '15ML': 818,
+      '30ML': 1448,
+      FULL: 3900,
+    },
     liquidHex: '#4C8CC4',
     accentHex: '#A7D1EC',
     image: './src/assets/images/perfume_saffron_amber_1795009104645.jpg',
@@ -445,7 +454,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Amber & Spice',
     displayFamily: 'Cardamom & Vanilla',
     fullBottleMl: 125,
-    fullPriceBdt: 19500,
+    fullPriceBdt: 15800,
+    sizePricesBdt: {
+      '3ML': 414,
+      '5ML': 598,
+      '10ML': 1117,
+      '15ML': 1618,
+      '30ML': 3098,
+      FULL: 15800,
+    },
     liquidHex: '#3B2D24',
     accentHex: '#D4A857',
     image: './src/assets/images/regenerated_image_1795520869879.jpg',
@@ -474,27 +491,27 @@ export const PERFUMES: Perfume[] = [
     ],
   },
   {
-    id: 'absolu-aventus-creed',
-    name: 'ABSOLU AVENTUS',
-    house: 'CREED',
-    concentration: 'Eau de Parfum',
-    family: 'Fresh & Citrus',
-    displayFamily: 'Grapefruit & Spiced Woods',
+    id: 'afnan-9pm-night-out',
+    name: '9PM NIGHT OUT',
+    house: 'AFNAN',
+    concentration: 'Extrait de Parfum',
+    family: 'Amber & Spice',
+    displayFamily: 'Cognac, Toffee & Spiced Woods',
     fullBottleMl: 75,
-    fullPriceBdt: 69500,
+    fullPriceBdt: 7300,
     sizePricesBdt: {
-      '3ML': 1858,
-      '5ML': 2999,
-      '10ML': 5949,
-      '15ML': 9268,
-      '30ML': 19298,
-      FULL: 69500,
+      '3ML': 404,
+      '5ML': 614,
+      '10ML': 1094,
+      '15ML': 1524,
+      '30ML': 2944,
+      FULL: 7300,
     },
-    liquidHex: '#2E2B27',
-    accentHex: '#B8B2A6',
-    image: './src/assets/images/regenerated_image_1795520513799.jpg',
+    liquidHex: '#4E2A22',
+    accentHex: '#D8A35D',
+    image: './src/assets/images/regenerated_image_1795865931010.jpg',
     gallery: [
-      './src/assets/images/regenerated_image_1795520513799.jpg',
+      './src/assets/images/regenerated_image_1795865931010.jpg',
       './src/assets/images/sillux_decant_vial_1795020000257.jpg',
       './src/assets/images/regenerated_image_1795022153510.png',
     ],
@@ -502,19 +519,19 @@ export const PERFUMES: Perfume[] = [
     isBestSeller: true,
     bestsellerRank: 5,
     longevity: '10–12 Hours',
-    sillage: 'Commanding & Dark',
-    tagline: 'Crisp pink grapefruit and Calabrian bergamot spiced with Ceylon cinnamon, fresh ginger, and smoky Haitian vetiver.',
+    sillage: 'Commanding & Nocturnal',
+    tagline: 'Exotic dragon fruit, warm cognac, and crisp apple melting into spiced cardamom toffee, supple suede, tonka bean, and dark woods.',
     notes: {
-      top: ['Grapefruit', 'Calabrian Bergamot', 'Blackcurrant'],
-      heart: ['Fresh Ginger', 'Citron', 'Ceylon Cinnamon', 'Cardamom'],
-      base: ['Pink Pepper', 'Patchouli', 'Haitian Vetiver'],
+      top: ['Dragon Fruit', 'Cognac', 'Apple', 'Lavender', 'Bergamot'],
+      heart: ['Toffee', 'Cardamom', 'Suede', 'Cedarwood'],
+      base: ['Tonka Bean', 'Ambroxan', 'Akigalawood', 'Patchouli'],
     },
     accords: [
-      { name: 'Zesty Grapefruit', strength: 95, toneHex: '#D88C4A' },
-      { name: 'Warm Spices', strength: 88, toneHex: '#B66A38' },
-      { name: 'Earthy Vetiver', strength: 82, toneHex: '#6F7252' },
-      { name: 'Smoky Patchouli', strength: 74, toneHex: '#6B5846' },
-      { name: 'Crisp Citrus', strength: 68, toneHex: '#D4B65E' },
+      { name: 'Warm Cognac & Sweet', strength: 95, toneHex: '#C98A42' },
+      { name: 'Spiced Cardamom', strength: 88, toneHex: '#B66A38' },
+      { name: 'Exotic Fruity', strength: 82, toneHex: '#C85E6B' },
+      { name: 'Tonka & Amber', strength: 78, toneHex: '#A67A48' },
+      { name: 'Dark Woods & Suede', strength: 70, toneHex: '#6B5846' },
     ],
   },
   {
@@ -525,14 +542,14 @@ export const PERFUMES: Perfume[] = [
     family: 'Fresh & Citrus',
     displayFamily: 'Green Citrus & Musk',
     fullBottleMl: 100,
-    fullPriceBdt: 8100,
+    fullPriceBdt: 14600,
     sizePricesBdt: {
-      '3ML': 368,
-      '5ML': 568,
-      '10ML': 1128,
-      '15ML': 1471,
-      '30ML': 1948,
-      FULL: 8100,
+      '3ML': 363,
+      '5ML': 567,
+      '10ML': 1134,
+      '15ML': 1498,
+      '30ML': 2490,
+      FULL: 14600,
     },
     liquidHex: '#7E93A6',
     accentHex: '#B8C4CE',
@@ -569,7 +586,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Amber & Spice',
     displayFamily: 'Vanilla & Cinnamon',
     fullBottleMl: 100,
-    fullPriceBdt: 15500,
+    fullPriceBdt: 4300,
+    sizePricesBdt: {
+      '3ML': 274,
+      '5ML': 548,
+      '10ML': 704,
+      '15ML': 994,
+      '30ML': 1894,
+      FULL: 4300,
+    },
     liquidHex: '#8E4E2E',
     accentHex: '#D49E5A',
     image: './src/assets/images/regenerated_image_1795521031969.jpg',
@@ -605,7 +630,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Amber & Spice',
     displayFamily: 'Toffee & Vanilla',
     fullBottleMl: 100,
-    fullPriceBdt: 18500,
+    fullPriceBdt: 13800,
+    sizePricesBdt: {
+      '3ML': 618,
+      '5ML': 548,
+      '10ML': 1618,
+      '15ML': 2488,
+      '30ML': 4758,
+      FULL: 13800,
+    },
     liquidHex: '#9E4B1E',
     accentHex: '#DFAD6B',
     image: './src/assets/images/regenerated_image_1795521384282.jpg',
@@ -641,7 +674,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Amber & Spice',
     displayFamily: 'Spiced Rum & Amber',
     fullBottleMl: 100,
-    fullPriceBdt: 16500,
+    fullPriceBdt: 4350,
+    sizePricesBdt: {
+      '3ML': 270,
+      '5ML': 486,
+      '10ML': 688,
+      '15ML': 958,
+      '30ML': 1818,
+      FULL: 4350,
+    },
     liquidHex: '#7C2318',
     accentHex: '#C59B4A',
     image: './src/assets/images/regenerated_image_1795521612667.jpg',
@@ -713,7 +754,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Amber & Spice',
     displayFamily: 'Vanilla & Lavender',
     fullBottleMl: 100,
-    fullPriceBdt: 19500,
+    fullPriceBdt: 14400,
+    sizePricesBdt: {
+      '3ML': 874,
+      '5ML': 1288,
+      '10ML': 2324,
+      '15ML': 3308,
+      '30ML': 6334,
+      FULL: 14400,
+    },
     liquidHex: '#7C333B',
     accentHex: '#D4969A',
     image: './src/assets/images/regenerated_image_1795521811982.jpg',
@@ -1076,7 +1125,15 @@ export const PERFUMES: Perfume[] = [
     family: 'Fresh & Citrus',
     displayFamily: 'Icy Citrus & Amber',
     fullBottleMl: 100,
-    fullPriceBdt: 14500,
+    fullPriceBdt: 3900,
+    sizePricesBdt: {
+      '3ML': 245,
+      '5ML': 358,
+      '10ML': 588,
+      '15ML': 818,
+      '30ML': 1448,
+      FULL: 3900,
+    },
     liquidHex: '#4C8CC4',
     accentHex: '#A7D1EC',
     image: './src/assets/images/regenerated_image_1795093608084.jpg',
@@ -1776,14 +1833,21 @@ export function getPriceForSize(perfume: Perfume, sizeId: PerfumeSizeId): number
   return Math.round((perfume.fullPriceBdt * size.priceMultiplier) / 50) * 50;
 }
 
+export function getVisibleSizesForPerfume(perfume: Perfume): PerfumeSizeOption[] {
+  if (!perfume.hiddenSizes?.length) return PERFUME_SIZES;
+  return PERFUME_SIZES.filter((s) => !perfume.hiddenSizes!.includes(s.id));
+}
+
 export function isSizeOutOfStock(perfume: Perfume, sizeId: PerfumeSizeId): boolean {
   if (perfume.outOfStock) return true;
+  if (perfume.hiddenSizes?.includes(sizeId)) return true;
   return Boolean(perfume.outOfStockSizes?.includes(sizeId));
 }
 
 export function isPerfumeFullyOutOfStock(perfume: Perfume): boolean {
   if (perfume.outOfStock) return true;
-  return PERFUME_SIZES.every((s) => perfume.outOfStockSizes?.includes(s.id));
+  const visibleSizes = getVisibleSizesForPerfume(perfume);
+  return visibleSizes.every((s) => isSizeOutOfStock(perfume, s.id));
 }
 
 export function getStockLabel(perfume: Perfume): string {
@@ -1794,9 +1858,12 @@ export function getFirstAvailableSize(
   perfume: Perfume,
   preferred: PerfumeSizeId = '10ML'
 ): PerfumeSizeId {
-  if (!isSizeOutOfStock(perfume, preferred)) return preferred;
-  const available = PERFUME_SIZES.find((s) => !isSizeOutOfStock(perfume, s.id));
-  return available ? available.id : preferred;
+  const visibleSizes = getVisibleSizesForPerfume(perfume);
+  if (visibleSizes.some((s) => s.id === preferred) && !isSizeOutOfStock(perfume, preferred)) {
+    return preferred;
+  }
+  const available = visibleSizes.find((s) => !isSizeOutOfStock(perfume, s.id));
+  return available ? available.id : visibleSizes[0]?.id ?? preferred;
 }
 
 export function sortBestSellersFirst(list: Perfume[]): Perfume[] {

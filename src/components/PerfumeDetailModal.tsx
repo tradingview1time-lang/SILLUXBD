@@ -22,6 +22,7 @@ import {
   getPerfumeGallery,
   getPriceForSize,
   getStockLabel,
+  getVisibleSizesForPerfume,
   isPerfumeFullyOutOfStock,
   isSizeOutOfStock,
 } from '../data/perfumes';
@@ -197,7 +198,8 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
   };
   const photoLabels = ['Signature Flacon', 'Decant Size Guide', 'Authenticity Certificate'];
 
-  const sizeMeta = PERFUME_SIZES.find((s) => s.id === selectedSize) ?? PERFUME_SIZES[2];
+  const visibleSizes = getVisibleSizesForPerfume(perfume);
+  const sizeMeta = visibleSizes.find((s) => s.id === selectedSize) ?? visibleSizes[0] ?? PERFUME_SIZES[2];
   const currentPrice = getPriceForSize(perfume, selectedSize);
   const selectedSizeStockOut = isSizeOutOfStock(perfume, selectedSize);
   const fullyStockOut = isPerfumeFullyOutOfStock(perfume);
@@ -482,11 +484,13 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({
 
                 {/* 6 Interactive Size Buttons — Each With Its Own Separate Bottle Photo */}
                 <div
-                  className="grid grid-cols-3 sm:grid-cols-6 gap-2"
+                  className={`grid grid-cols-3 ${
+                    visibleSizes.length === 5 ? 'sm:grid-cols-5' : 'sm:grid-cols-6'
+                  } gap-2`}
                   role="radiogroup"
                   aria-label="Choose perfume ML size"
                 >
-                  {PERFUME_SIZES.map((s) => {
+                  {visibleSizes.map((s) => {
                     const active = selectedSize === s.id;
                     const out = isSizeOutOfStock(perfume, s.id);
                     const priceForOpt = getPriceForSize(perfume, s.id);
